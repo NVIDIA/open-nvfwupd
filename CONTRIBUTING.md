@@ -3,11 +3,13 @@
 #### Pull Requests
 Developer workflow for code contributions is as follows:
 
-1. Developers must first [fork](https://help.github.com/en/articles/fork-a-repo) the [upstream](https://github.com/nvidia/open-nvfwupd) open-nvfwupd OSS repository.
+1. To receive write access to the repo, create a new issue in GitHub with an explanation for what you wish to contribute.
 
-2. Git clone the forked repository and push changes to the personal fork.
+2. Developers must first [fork](https://help.github.com/en/articles/fork-a-repo) the [upstream](https://github.com/nvidia/open-nvfwupd) open-nvfwupd OSS repository.
 
-3. Once the code changes are staged on the fork and ready for review, a [Pull Request](https://help.github.com/en/articles/about-pull-requests) (PR) can be [requested](https://help.github.com/en/articles/creating-a-pull-request) to merge the changes from a branch of the fork into a selected branch of upstream.
+3. Git clone the forked repository and push changes to the personal fork.
+
+4. Once the code changes are staged on the fork and ready for review, a [Pull Request](https://help.github.com/en/articles/about-pull-requests) (PR) can be [requested](https://help.github.com/en/articles/creating-a-pull-request) to merge the changes from a branch of the fork into a selected branch of upstream.
     * Exercise caution when selecting the source and target branches for the PR.
     * Creation of a PR creation kicks off the code review process.
     * While under review, mark your PRs as work-in-progress by prefixing the PR title with [WIP].
