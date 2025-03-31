@@ -1103,7 +1103,6 @@ class BMCLoginAccess(DUTAccess):
             False if the info could not be acquired
         """
         # pylint: disable=too-many-branches, too-many-nested-blocks
-        # export NVFWUPD_DUT_MAP=oberon:ami
         dut_map = os.environ.get("NVFWUPD_DUT_MAP")
         if dut_map is not None:
             if dut_map.find(":") == -1:

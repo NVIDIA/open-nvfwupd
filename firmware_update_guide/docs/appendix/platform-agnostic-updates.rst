@@ -52,7 +52,7 @@ The tool supports various configuration parameters and ``BMC_IP``, ``RF_USERNAME
 
    # List of update targets. replaces -s/--special option input file. Value is list of target URIs
    # Use UpdateParametersTargets: {} for DGX empty JSON value used for full DGX update
-   # Use UpdateParametersTargets: [] for Oberon empty list used for BMC update
+   # Use UpdateParametersTargets: [] for GB200 NVL empty list used for BMC update
    UpdateParametersTargets:
    - "/redfish/v1/UpdateService/FirmwareInventory/CPLDMB_0"
 
