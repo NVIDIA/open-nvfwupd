@@ -598,7 +598,6 @@ class FwUpdCmd:
         # pylint: disable=too-many-branches
         rf_target = None
         target_class = ""
-        dut_map = os.environ.get("NVFWUPD_DUT_MAP")
         # Parallel Update has platform_types individually defined
         # Config single targets expected to use individual TargetPlatform
         if (platform_type and parallel_update) or (
@@ -656,34 +655,21 @@ class FwUpdCmd:
                     dut_access, self.config_parser.config_dict, print_json=json_dict
                 )
             return rf_target
-        if dut_map is not None and dut_map.find(":") != -1:
-            target_platform = dut_map.split(":")[0]
-            stack = dut_map.split(":")[1]
-            target_class = RFTarget.TARGET_TYPE_CONFIG_DICT.get(stack)
+        target_platform = dut_access.m_model.lower()
+        if "hgx" in target_platform:
+            target_platform = "hgx"
+        target_class = RFTarget.TARGET_CLASS_DICT.get(target_platform)
+        if target_class is None:
+            # Look for a partial match
+            target_class = FwUpdCmd.match_platform(target_platform)
             if target_class is None:
                 Util.bail_nvfwupd_threadsafe(
                     1,
-                    f"Invalid configuration {dut_map}. Unknown type {stack}.",
+                    f"Platform {target_platform} not supported",
                     print_json=json_dict,
                     parallel_update=parallel_update,
                 )
                 return None
-        else:
-            target_platform = dut_access.m_model.lower()
-            if "hgx" in target_platform:
-                target_platform = "hgx"
-            target_class = RFTarget.TARGET_CLASS_DICT.get(target_platform)
-            if target_class is None:
-                # Look for a partial match
-                target_class = FwUpdCmd.match_platform(target_platform)
-                if target_class is None:
-                    Util.bail_nvfwupd_threadsafe(
-                        1,
-                        f"Platform {target_platform} not supported",
-                        print_json=json_dict,
-                        parallel_update=parallel_update,
-                    )
-                    return None
         rf_target = globals()[target_class](dut_access)
         return rf_target
 

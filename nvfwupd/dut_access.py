@@ -1103,20 +1103,6 @@ class BMCLoginAccess(DUTAccess):
             False if the info could not be acquired
         """
         # pylint: disable=too-many-branches, too-many-nested-blocks
-        dut_map = os.environ.get("NVFWUPD_DUT_MAP")
-        if dut_map is not None:
-            if dut_map.find(":") == -1:
-                Util.bail_nvfwupd(
-                    1,
-                    f"Invalid configuration {dut_map} in NVFWUPD_DUT_MAP.",
-                    Util.BailAction.DO_NOTHING,
-                    print_json=json_dict,
-                )
-                return False
-            self.m_model = dut_map.split(":")[0]
-            self.m_partnumber = "N/A"
-            self.m_serialnumber = "N/A"
-            return True
         status, chassis_dict = self.dispatch_request(
             "GET", "/redfish/v1/Chassis/DGX", suppress_err=True, json_prints=json_dict
         )
