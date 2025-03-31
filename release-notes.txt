@@ -1,0 +1,5 @@
+March 31, 2025
+
+CLI version: 1.0.0
+
+- Initial Release of open-nvfwupd

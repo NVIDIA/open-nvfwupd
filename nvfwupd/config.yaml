@@ -1,0 +1,68 @@
+# Define target platform as one of HGX / DGX / GB200 / HGXB100 / MGX-NVL / GB200Switch
+TargetPlatform: 'DGX'
+# Provide full path of firmware file(s) to be used for firmware update. Value is a list
+FWUpdateFilePath: 
+  - "../packages/nvfw_DGX-H100_0005_231206.1.0_nightly.fwpkg"
+
+# Define URI for MultipartHttpPushUri (Optional override). Default value is taken from UpdateService
+MultipartHttpPushUri: '/redfish/v1/UpdateService/update-multipart'
+
+# HttpPushUri for PLDM Firmware Update (Optional override). Default value "/redfish/v1/UpdateService"
+HttpPushUri: '/redfish/v1/UpdateService'
+TaskServiceUri: '/redfish/v1/TaskService/Tasks/'
+# Define differnt update methods. Valid values {'MultipartHttpPushUri', 'HttpPushUri'}
+FwUpdateMethod: "MultipartHttpPushUri"
+
+# Optional Parameter used with MultipartHttpPushUri update method
+# used to define dict of parameters for multipart FW update
+MultipartOptions:
+  - ForceUpdate: True
+
+# Target IP address. BMC IP/NVOS Rest service IP/localhost for port forwarding
+BMC_IP: "1.1.1.1"
+RF_USERNAME: "user"
+RF_PASSWORD: ""
+
+# Target port config if port forwarding is used.
+TUNNEL_TCP_PORT: "14443"
+
+# List of update targets. replaces -s/--special option input file. Value is list of target URIs
+# Not used alongside ParallelUpdate
+UpdateParametersTargets:
+  - "/redfish/v1/UpdateService/FirmwareInventory/CPLDMB_0"
+
+# Config for reset BMC parameters. Value is a dict.
+# Use ResetType: 'ResetAll' for DGX
+BMCResetParameters:
+    ResetType: 'ResetAll'
+
+# Optional Parameter to be used alongside Targets for updating multiple systems in parallel
+ParallelUpdate: True
+
+# Multi target input. Value is list of dicts.
+# TARGET_PLATFORM, PACKAGE, UPDATE_PARAMETERS_TARGETS, SYSTEM_NAME are optional values to be
+# used with ParallelUpdate as True
+# Define TARGET_PLATFORM as one of HGX / DGX / GB200 / HGXB100 / MGX-NVL / GB200Switch
+# Define PACKAGE as full path of firmware file to be used for firmware update
+# Define UPDATE_PARAMETERS_TARGETS as special option inputs as seen using -s input file
+# Define SYSTEM_NAME as a user specified string for a memorable system name used in parallel update logging
+Targets:
+  - BMC_IP: "1.1.1.1"
+    RF_USERNAME: "user"
+    RF_PASSWORD: ""
+    TUNNEL_TCP_PORT: "14443"
+    TARGET_PLATFORM: "DGX"
+    PACKAGE: "../packages/nvfw_DGX-H100_0005_231206.1.0_nightly.fwpkg"
+    UPDATE_PARAMETERS_TARGETS: {}
+    SYSTEM_NAME: "DGX_SYSTEM_LAB_1"
+  - BMC_IP: "2.2.2.2"
+    RF_USERNAME: "user"
+    RF_PASSWORD: ""
+    TUNNEL_TCP_PORT: "14444"
+    TARGET_PLATFORM: "GB200"
+    PACKAGE: "nvfw_GB200-P4974_0003_241011.1.0_custom_prod-signed.fwpkg"
+    UPDATE_PARAMETERS_TARGETS: {"Targets": ["/redfish/v1/Chassis/HGX_Chassis_0"], "ForceUpdate": true}
+    SYSTEM_NAME: "GB200_System"
+
+# Disable Sanitize Log, disabling Sanitize Log leads to print system IP and user credential to the logs and screen
+SANITIZE_LOG: False
