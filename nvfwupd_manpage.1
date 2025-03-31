@@ -1,0 +1,101 @@
+.TH open-nvfwupd 1
+.SH NAME
+open-nvfwupd \- Out-of-Band Tool to update NVIDIA DGX, HGX platforms. 
+.SH SYNOPSIS
+.B nvfwupd.py
+[global options]
+[command]
+.SH DESCRIPTION
+.B nvfwupd.py
+This tool performs out-of-band firmware update of the entire DGX, HGX platforms, and NVSwitch Trays. It can also update an individual component of these platforms.
+.SH GLOBAL OPTIONS
+.TP
+.BR "-t/--target < sub-options >"
+Specify target Platform's BMC IP address or NVSwitch Tray's IP address and login credentials. 
+.RS
+.IP SUB-OPTIONS
+<key=value> pairs of input parameters that describe the target machine.
+.TP "ip=<value> user=<value> password=<value> port=<value> servertype=<value>"
+.RS
+.IP ip 0.20i
+IP address/FQDN of target BMC or NVSwitch Tray.
+.IP user
+Username to login to the target BMC or NVSwitch Tray.
+.IP password
+Password to login to the target BMC or NVSwitch Tray.
+.IP port
+TCP port with port-forwarding to use to connect with BMC service (optional)
+.IP servertype
+User can provide servertype value from one of [DGX | HGX | HGXB100 | GB200 | MGX-NVL | GB200Switch] based on the type of the target system. This is optional and recommeded only to aid usage in case of unknown platform errors.
+.RE
+.RE
+.TP
+.BR "-c/--config < config YAML path >"
+A YAML config file can be used to define the behaviour of few commands. This option takes the path of such YAML config file (optional).
+.TP
+.BR "-v/--verbose < logfile path >"
+Increase verbosity. Provide chosen path for logfile (optional). Default path is current working directory.
+.SH COMMAND
+.TP
+.BR "show_version <command options>"
+Show AP components that can be updated out-of-band along with current running firmware versions. If -p option is specified, then show firmware version of these AP components from the firmware package, and if the given AP component is up-to-date or needs updating. Global option -t/--target required.
+.IP "COMMAND OPTIONS"
+.RS
+.IP -p/--package 0.20i
+PLDM firmware package or firmware tar file. (optional)
+.IP -j/--json 0.20i
+Display package comparison in JSON format. (optional)
+.RE
+.TP
+.BR "update_fw <command options>"
+Perform firmware update of the entire server out-of-band using either PLDM package or the tarball. If -s option is specified, firmware update only the AP component(s) mentioned in the JSON file. Global option -t/--target required.
+.IP "COMMAND OPTIONS"
+.RS
+.IP -p/--package 0.20i
+PLDM firmware package or firmware tar file (mandatory).
+.IP -b/--background
+Perform firmware update asynchronously in the background.
+.IP -s/--special
+Special Update json file.
+.IP -t/--timeout
+Redfish API request timeout value in seconds.
+.IP -y/--yes
+Show update progress in table format.
+.IP -d/--details
+Bypass firmware update confirmation prompt.
+.IP -j/--json
+Show output in JSON. Must be paired with the -b background option, and always bypasses update confirmation prompt.
+.RE
+.TP
+.BR "force_update <option_value> <command options>"
+Command to check/enable/disable the force update flag on target system. Used for downgrades. Global option -t/--target required.
+.IP "OPTION VALUE"
+.RS
+.IP enable 0.20i
+Enable force update on target.
+.IP disable
+disable force update on target.
+.IP status
+Show status of force update on target.
+.RE
+.IP "COMMAND OPTIONS"
+.RS
+.IP -j/--json
+show output in JSON
+.RE
+.TP
+.BR "show_update_progress <command options>"
+Show current status of an update task running on target. Global option -t/--target required.
+.IP "COMMAND OPTIONS"
+.RS
+.IP -i/--id 0.20i
+Task ID of the update task to monitor.
+.IP -j/--json
+show output in JSON
+.RE
+.SH AUTHOR
+NVIDIA Corporation
+.SH COPYRIGHT
+Copyright 2024-2025 NVIDIA Corporation.
+
+

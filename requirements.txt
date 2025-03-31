@@ -1,0 +1,6 @@
+python>=3.10
+requests
+PyYAML
+paramiko
+scp
+tabulate

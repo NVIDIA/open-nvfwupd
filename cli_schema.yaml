@@ -1,0 +1,150 @@
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: MIT
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+GlobalOptions:
+  Groups:
+    - Target
+    - ConfigFile
+  Usage: "[-t BMC-TARGET] [-v] < command >"
+  Options:
+    - Target:
+        Description: BMC target comprising BMC IP address and BMC login credentials. servertype and port are optional. Valid value for servertype is one of [DGX, HGX, HGXB100, GB200, MGX-NVL, GB200Switch]
+        Short: t
+        Long: target
+        Arg: ip=<BMC IP> user=<BMC login id> password=<BMC password> port=<port num for port forwarding> servertype=<Type of server>
+        Nargs: +
+        Action: store
+        Validator: validate_target
+    - Config:
+        Description: Configure tool behavior
+        Short: c
+        Long: config
+        Action: store
+        Nargs: +
+        Required: false
+        Arg: "Path for config file (optional)."
+        Validator: ''
+    - Verbosity:
+        Description: Increase verbosity
+        Short: v
+        Long: verbose
+        Action: store
+        Nargs: '*'
+        Required: false
+        Arg: "Chosen path for logfile (optional). Default path is current working directory."
+        Validator: ''
+Commands:
+  - Name: help
+    Class: Help
+    RequireGlobalOption: false
+    Description: Show tool help.
+  - Name: version
+    Class: ToolVersion
+    Usage: "version"
+    RequireGlobalOption: false
+    Description: Show tool version.
+  - Name: show_version
+    Class: ShowVersion
+    RequireGlobalOption: true
+    Usage: "show_version -p/--package FWPKG [FWPKG ...] [-j]"
+    Options:
+     - Description: PLDM firmware package
+       Short: p
+       Long: package
+       Nargs: '+'
+       Action: store
+       Required: false
+       Validator: validate_recipe
+     - Description: show output in JSON
+       Short: j
+       Long: json
+       Action: store_true
+       Required: false
+       Validator: validate_recipe
+  - Name: update_fw
+    Class: UpdateFirmware
+    RequireGlobalOption: true
+    Usage: "update_fw [-p FWPKG [FWPKG ...]] [-y] [-b] [-s] [-t] [-j] [-d]"
+    Options:
+      - Description: PLDM firmware package
+        Short: p
+        Long: package
+        Nargs: '+'
+        Action: store
+        Validator: validate_recipe
+      - Description: Bypass firmware update confirmation prompt
+        Short: 'y'
+        Long: 'yes'
+        Action: store_true
+      - Description: Exit without waiting for the update process to finish
+        Short: b
+        Long: background
+        Action: store_true
+      - Description: API request timeout value in seconds
+        Short: t
+        Long: timeout
+        Action: store
+      - Description: Special Update json file
+        Short: s
+        Long: special
+        Nargs: '+'
+        Action: store
+      - Description: Show update progress in table format
+        Short: d
+        Long: details
+        Action: store_true
+      - Description: show output in JSON. Must be paired with the -b background option, and always bypasses update confirmation prompt.
+        Short: j
+        Long: json
+        Action: store_true
+        Required: false
+        Validator: validate_recipe
+  - Name: force_update
+    Class: ForceUpdate
+    RequireGlobalOption: true
+    Usage: "force_update [enable|disable|status] [-j]"
+    Options:
+        - Description: enable, disable or check current force update value on target
+          Long: force_upd_action
+          Nargs: 1
+          Action: store
+        - Description: show output in JSON
+          Short: j
+          Long: json
+          Action: store_true
+          Required: false
+  - Name: show_update_progress
+    Class: ShowUpdateProgress
+    RequireGlobalOption: true
+    Usage: show_update_progress [-j] -i/--id Task Ids [RECIPE ...]
+    Options:
+     - Description: List of Task IDs delimited by space
+       Short: i
+       Long: id
+       Nargs: '+'
+       Action: store
+       Required: true
+     - Description: show output in JSON
+       Short: j
+       Long: json
+       Action: store_true
+       Required: false
+       Validator: validate_recipe
