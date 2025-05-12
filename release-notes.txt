@@ -1,3 +1,12 @@
+May 12, 2025
+
+CLI version: 1.0.1
+
+- SPI Staged Update Support
+- GB300 Servertype Support
+- Added default update parameters for DGX and GB200 NVL if no special update file provided for updates
+- Minor Bugfixes
+
 March 31, 2025
 
 CLI version: 1.0.0

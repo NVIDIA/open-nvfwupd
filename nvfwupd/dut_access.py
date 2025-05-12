@@ -105,7 +105,7 @@ class DUTAccess:
             if Util.is_sanitize:
                 target_str = Util.sanitize_log(target_str)
             for each in global_args.target:
-                tokens = Util.get_tokens(each, "=")
+                tokens = each.split("=", 1)
                 if len(tokens) < 2:
                     if not json_dict:
                         print(len(tokens))
@@ -1080,9 +1080,6 @@ class BMCLoginAccess(DUTAccess):
                         )
                         return False, my_dict
         except requests.exceptions.RequestException as excpt:
-            DUTAccess.dut_logger.verbose_log(
-                f"Error: Error sending HTTPs request: {excpt}"
-            )
             if not suppress_err:
                 Util.bail_nvfwupd(
                     1,
@@ -1276,12 +1273,21 @@ class BMCLoginAccess(DUTAccess):
             pkg_file_fd.close()
             if params_file_fd is not None:
                 params_file_fd.close()
-            Util.bail_nvfwupd_threadsafe(
-                1,
-                f"Error: Error sending HTTPs request: {excpt.response}",
-                print_json=json_prints,
-                parallel_update=parallel_update,
-            )
+            if excpt.response is None:
+                # Print the exception even in non-verbose cases if the response is None
+                Util.bail_nvfwupd_threadsafe(
+                    1,
+                    f"Error: Error sending HTTPs request: {excpt}",
+                    print_json=json_prints,
+                    parallel_update=parallel_update,
+                )
+            else:
+                Util.bail_nvfwupd_threadsafe(
+                    1,
+                    f"Error: Error sending HTTPs request: {excpt.response}",
+                    print_json=json_prints,
+                    parallel_update=parallel_update,
+                )
         return status, response_dict
 
 

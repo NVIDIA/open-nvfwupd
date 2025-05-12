@@ -62,7 +62,7 @@ class ConfigTarget(RFTarget):
         Acquire the update URI from the Redfish update service
     get_task_service_uri(task_id) :
         Acquire the task service URI from Redfish for task monitoring
-    update_component(param_list, update_uri, update_file, time_out,
+    update_component(cmd_args, update_uri, update_file, time_out,
                          json_dict=None, parallel_update=False) :
         Update a firmware component or target system
     start_update_monitor(recipe_list, pkg_parser, cmd_args, time_out,
@@ -123,7 +123,7 @@ class ConfigTarget(RFTarget):
             self.config_platform_target = MGXNVLRFTarget(self.target_access)
         elif target_platform == "dgx":
             self.config_platform_target = DGX_RFTarget(self.target_access)
-        elif target_platform == "gb200":
+        elif target_platform in ("gb200", "gb300"):
             self.config_platform_target = GB200RFTarget(self.target_access)
         elif target_platform == "gb200switch":
             self.config_platform_target = GB200SwitchTarget(self.target_access)
@@ -253,7 +253,7 @@ class ConfigTarget(RFTarget):
     # pylint: disable=too-many-positional-arguments
     def update_component(
         self,
-        param_list,
+        cmd_args,
         update_uri,
         update_file,
         time_out,
@@ -264,7 +264,7 @@ class ConfigTarget(RFTarget):
         check update config param and call multipart update or http push uri
         read update targets param list from the config into a json
         Parameters:
-            param_list List of special parameters used for the update
+            cmd_args Parsed input command arguments
             update_uri Target URI used for the update
             update_file File used for the update
             time_out Timeout period in seconds for the requests
@@ -317,7 +317,7 @@ class ConfigTarget(RFTarget):
             )
         elif self.config_platform_target:
             task_id = self.config_platform_target.update_component(
-                param_list,
+                cmd_args,
                 update_uri,
                 update_file,
                 time_out,

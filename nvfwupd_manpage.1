@@ -26,7 +26,7 @@ Password to login to the target BMC or NVSwitch Tray.
 .IP port
 TCP port with port-forwarding to use to connect with BMC service (optional)
 .IP servertype
-User can provide servertype value from one of [DGX | HGX | HGXB100 | GB200 | MGX-NVL | GB200Switch] based on the type of the target system. This is optional and recommeded only to aid usage in case of unknown platform errors.
+Users can provide the servertype value from the [DGX | HGX | HGXB100 | GB200 | GB300 | MGX-NVL | GB200Switch] options based on the type of the target system type. This is optional and is recommended only if you experience unknown platform errors.
 .RE
 .RE
 .TP
@@ -45,6 +45,8 @@ Show AP components that can be updated out-of-band along with current running fi
 PLDM firmware package or firmware tar file. (optional)
 .IP -j/--json 0.20i
 Display package comparison in JSON format. (optional)
+.IP -s/--staged 0.20i
+Display staged firmware versions. (optional)
 .RE
 .TP
 .BR "update_fw <command options>"
@@ -65,6 +67,10 @@ Show update progress in table format.
 Bypass firmware update confirmation prompt.
 .IP -j/--json
 Show output in JSON. Must be paired with the -b background option, and always bypasses update confirmation prompt.
+.IP -u/--staged_update
+Run a SPI staged update for components that support it. (optional)
+.IP -a/--staged_activate_update
+Run a SPI staged and activate update for components that support it. (optional)
 .RE
 .TP
 .BR "force_update <option_value> <command options>"

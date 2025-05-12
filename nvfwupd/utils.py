@@ -324,6 +324,7 @@ class Util:
             "dgx",
             "hgx",
             "gb200",
+            "gb300",
             "hgxb100",
             "mgx-nvl",
             "gb200switch",

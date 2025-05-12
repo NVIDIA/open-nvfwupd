@@ -9,6 +9,7 @@ Firmware Update Guide
 
     introduction
     examples/gb200NVL
+    examples/gb300NVL
     examples/verbose
     examples/log-sanitization
 
@@ -22,6 +23,8 @@ Firmware Update Guide
     Parallel Update Support <appendix/parallel-update>
     Full Rack Parallel Update <appendix/full-rack-parallel-update>
     JSON Options For Automation <appendix/json-options>
+    SPI Staged Update Support <appendix/spi-staged>
+    Output Formatting <appendix/output-formatting>
 
 .. toctree::
     :hidden:

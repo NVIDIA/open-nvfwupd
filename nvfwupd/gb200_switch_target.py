@@ -52,7 +52,7 @@ class GB200SwitchTarget(RFTarget):
         Acquire target name for a given bundle component name
     upload_image(file_path, ap_name, parallel_update, print_json=None) :
         Upload an image using scp to the target system
-    update_component(param_list, update_uri, update_file, time_out,
+    update_component(cmd_args, update_uri, update_file, time_out,
                          json_dict=None, parallel_update=False) :
         Unused method (Returns empty string)
     get_update_file(target_comp, pkg_parser) :
@@ -192,7 +192,7 @@ class GB200SwitchTarget(RFTarget):
     # pylint: disable=too-many-positional-arguments
     def update_component(
         self,
-        param_list,
+        cmd_args,
         update_uri,
         update_file,
         time_out,

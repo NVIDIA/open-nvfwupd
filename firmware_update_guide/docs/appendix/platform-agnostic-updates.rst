@@ -12,7 +12,7 @@ The tool supports various configuration parameters and ``BMC_IP``, ``RF_USERNAME
 
 .. code-block:: yaml
 
-   # Define target platform as one of HGX / DGX / GB200 / HGXB100 / MGX-NVL / GB200Switch
+   # Define the target platform as one of HGX/DGX/GB200/GB300/HGXB100/MGX-NVL/GB200Switch.
    TargetPlatform: 'DGX'
    # Disable Sanitize Log, disabling Sanitize Log leads to print system IP and user credential to the logs and screen
    SANITIZE_LOG: False

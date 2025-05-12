@@ -14,6 +14,9 @@
 # limitations under the License.
 """Class that defines update related behavior for HGX-B100"""
 import re
+import json
+import os
+from nvfwupd.utils import Util
 from nvfwupd.base_rftarget import BaseRFTarget
 
 
@@ -45,6 +48,9 @@ class HGXB100RFTarget(BaseRFTarget):
         Get a component package version based on device sku
     get_component_version(pldm_version_dict, ap_name) :
         Get a component version from a pldm dictionary
+    update_component(cmd_args, update_uri, update_file, time_out,
+                        json_dict=None, parallel_update=False) :
+        Update a firmware component or target system
 
     """
 
@@ -175,6 +181,188 @@ class HGXB100RFTarget(BaseRFTarget):
                         ap_version = pkg_version[0]
         return ap_version
 
+    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-positional-arguments
+    def update_component(
+        self,
+        cmd_args,
+        update_uri,
+        update_file,
+        time_out,
+        json_dict=None,
+        parallel_update=False,
+    ):
+        """
+        Method to perform FW update using redfish request for B100, B200
+        returns task id
+        Parameters:
+            cmd_args Parsed input command arguments
+            update_uri Target Redfish URI used for the update
+            update_file File used for the update
+            time_out Timeout period in seconds for the requests
+            json_dict Optional JSON Dictionary used for JSON Mode and Prints
+            parallel_update Boolean value, True if doing a parallel update
+        Returns:
+            Task ID of the update task or
+            None if there was a failure
+        """
+        # cmd_args.special - User passed in JSON Update Parameters or file with Update Parameters
+        param_list = cmd_args.special
+
+        # By default use HTTPPUSHURI
+        push_uri = True
+        json_data = None
+
+        # Read in params if they exist, then decide to use either push_uri or multipart
+        if param_list is not None and self.validate_json(param_list):
+            json_data = json.loads(param_list)
+        elif param_list is not None and os.path.isfile(param_list[0]):
+            try:
+                with open(param_list[0], "r", encoding="utf-8") as file:
+                    json_data = json.load(file)
+            except json.JSONDecodeError:
+                # Improper update file
+                Util.bail_nvfwupd_threadsafe(
+                    1,
+                    "Error: Invalid JSON special update file",
+                    print_json=json_dict,
+                    parallel_update=parallel_update,
+                )
+                return None
+
+        # Presence of empty dictionary or Targets means use multipart
+        if json_data is not None and ("Targets" in json_data or json_data == {}):
+            push_uri = False
+
+        if cmd_args.staged_update or cmd_args.staged_activate_update:
+            # staged or stage and activate means multipart must be used
+            push_uri = False
+
+            if json_data is not None and "HttpPushUriTargets" in json_data:
+                # This is not supported, as staged and staged activate require multipart
+                Util.bail_nvfwupd_threadsafe(
+                    1,
+                    "Error: HttpPushUriTargets is not supported with staged updates",
+                    print_json=json_dict,
+                    parallel_update=parallel_update,
+                )
+                return None
+
+            if param_list is None:
+                # If no options selected assume whole update for multipart
+                json_data = {}
+
+            # Add the OEM parameters for staging
+            if cmd_args.staged_update:
+                json_data["Oem"] = {"Nvidia": {"UpdateOption": "StageOnly"}}
+            elif cmd_args.staged_activate_update:
+                json_data["Oem"] = {"Nvidia": {"UpdateOption": "StageAndActivate"}}
+            # Update parameters
+            param_list = json.dumps(json_data)
+
+        if push_uri:
+            # Default HTTPPUSHURI
+            special_targets = ""
+            task_id = ""
+            if param_list is not None:
+                if self.validate_json(param_list):
+                    special_targets = param_list
+                else:
+                    try:
+                        with open(param_list[0], "r", encoding="utf-8") as params_file:
+                            special_targets = params_file.read()
+                    except IOError as e_io_error:
+                        Util.bail_nvfwupd_threadsafe(
+                            1,
+                            f"Failed to open or read given file {param_list[0]} "
+                            + f"error: ({e_io_error})",
+                            print_json=json_dict,
+                            parallel_update=parallel_update,
+                        )
+                        return None
+                status, err_dict = self.target_access.dispatch_request(
+                    "PATCH",
+                    "/redfish/v1/UpdateService",
+                    param_data=special_targets,
+                    time_out=time_out,
+                    json_prints=json_dict,
+                )
+                if not status:
+                    Util.bail_nvfwupd_threadsafe(
+                        1,
+                        f"Patch update request failed! {err_dict}",
+                        print_json=json_dict,
+                        parallel_update=parallel_update,
+                    )
+                    return None
+            # POST fw update command via Redish System API
+            status, response_dict = self.target_access.dispatch_file_upload(
+                update_uri,
+                input_data=update_file,
+                time_out=time_out,
+                json_output=json_dict,
+                parallel_update=parallel_update,
+            )
+            if status is False:
+                Util.bail_nvfwupd_threadsafe(
+                    1,
+                    f"File upload failed with error {response_dict}",
+                    print_json=json_dict,
+                    parallel_update=parallel_update,
+                )
+                return None
+            # append the response for the json output
+            if json_dict:
+                json_dict["Output"].append(response_dict)
+            task_id = response_dict.get("Id", "")
+        else:
+            # need to adjust update_uri if using multipart
+            update_service_status, update_service_response = (
+                self.target_access.dispatch_request(
+                    "GET", "/redfish/v1/UpdateService", None, json_prints=json_dict
+                )
+            )
+            if (update_service_status is False) or (
+                update_service_response["ServiceEnabled"] is False
+            ):
+                Util.bail_nvfwupd_threadsafe(
+                    1,
+                    "UpdateService is not enabled in the system",
+                    Util.BailAction.PRINT_DIVIDER,
+                    print_json=json_dict,
+                    parallel_update=parallel_update,
+                )
+                return None
+            # Update the required update URI
+            update_uri = update_service_response.get(
+                "MultipartHttpPushUri", "/redfish/v1/UpdateService"
+            )
+
+            # Multipart Update
+            task_id = ""
+            if param_list is not None and self.validate_json(param_list):
+                task_id = super().update_component_multipart(
+                    None,
+                    update_uri,
+                    update_file,
+                    time_out,
+                    param_list,
+                    json_dict,
+                    parallel_update=parallel_update,
+                )
+            else:
+                task_id = super().update_component_multipart(
+                    param_list,
+                    update_uri,
+                    update_file,
+                    time_out,
+                    None,
+                    json_dict,
+                    parallel_update=parallel_update,
+                )
+
+        return task_id
+
 
 class MGXNVLRFTarget(HGXB100RFTarget):
     """
@@ -198,6 +386,9 @@ class MGXNVLRFTarget(HGXB100RFTarget):
     -------
     is_fungible_component(component_name) :
         Determines if a component is fungible for a given system
+    update_component(cmd_args, update_uri, update_file, time_out,
+                        json_dict=None, parallel_update=False) :
+        Update a firmware component or target system
     """
 
     def __init__(self, dut_access):
@@ -228,3 +419,83 @@ class MGXNVLRFTarget(HGXB100RFTarget):
         ):
             return True
         return False
+
+    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-positional-arguments
+    def update_component(
+        self,
+        cmd_args,
+        update_uri,
+        update_file,
+        time_out,
+        json_dict=None,
+        parallel_update=False,
+    ):
+        """
+        Method to perform FW update using redfish request for MGX-NVL Platforms
+        Parameters:
+            cmd_args Parsed input command arguments
+            update_uri Target Redfish URI used for the update
+            update_file File used for the update
+            time_out Timeout period in seconds for the requests
+            json_dict Optional JSON Dictionary used for JSON Mode and Prints
+            parallel_update Boolean value, True if doing a parallel update
+        Returns:
+            Task ID of the update task or
+            None if there was a failure
+        """
+        special_targets = ""
+        task_id = ""
+        param_list = cmd_args.special
+        if param_list is not None:
+            if self.validate_json(param_list):
+                special_targets = param_list
+            else:
+                try:
+                    with open(param_list[0], "r", encoding="utf-8") as params_file:
+                        special_targets = params_file.read()
+                except IOError as e_io_error:
+                    Util.bail_nvfwupd_threadsafe(
+                        1,
+                        f"Failed to open or read given file {param_list[0]} "
+                        + f"error: ({e_io_error})",
+                        print_json=json_dict,
+                        parallel_update=parallel_update,
+                    )
+                    return None
+            status, err_dict = self.target_access.dispatch_request(
+                "PATCH",
+                "/redfish/v1/UpdateService",
+                param_data=special_targets,
+                time_out=time_out,
+                json_prints=json_dict,
+            )
+            if not status:
+                Util.bail_nvfwupd_threadsafe(
+                    1,
+                    f"Patch update request failed! {err_dict}",
+                    print_json=json_dict,
+                    parallel_update=parallel_update,
+                )
+                return None
+        # POST fw update command via Redish System API
+        status, response_dict = self.target_access.dispatch_file_upload(
+            update_uri,
+            input_data=update_file,
+            time_out=time_out,
+            json_output=json_dict,
+            parallel_update=parallel_update,
+        )
+        if status is False:
+            Util.bail_nvfwupd_threadsafe(
+                1,
+                f"File upload failed with error {response_dict}",
+                print_json=json_dict,
+                parallel_update=parallel_update,
+            )
+            return None
+        # append the response for the json output
+        if json_dict:
+            json_dict["Output"].append(response_dict)
+        task_id = response_dict.get("Id", "")
+        return task_id

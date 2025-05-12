@@ -1,4 +1,4 @@
-# Define target platform as one of HGX / DGX / GB200 / HGXB100 / MGX-NVL / GB200Switch
+# Define target platform as one of HGX / DGX / GB200 / GB300 / HGXB100 / MGX-NVL / GB200Switch
 TargetPlatform: 'DGX'
 # Provide full path of firmware file(s) to be used for firmware update. Value is a list
 FWUpdateFilePath: 
@@ -16,7 +16,7 @@ FwUpdateMethod: "MultipartHttpPushUri"
 # Optional Parameter used with MultipartHttpPushUri update method
 # used to define dict of parameters for multipart FW update
 MultipartOptions:
-  - ForceUpdate: True
+    ForceUpdate: True
 
 # Target IP address. BMC IP/NVOS Rest service IP/localhost for port forwarding
 BMC_IP: "1.1.1.1"

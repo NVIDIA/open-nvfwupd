@@ -41,7 +41,7 @@ class BaseRFTarget(RFTarget):
     -------
     version_newer(pkg_version, sys_version) :
         Determines if package or system firmware version is newer
-    update_component(param_list, update_uri, update_file, time_out,
+    update_component(cmd_args, update_uri, update_file, time_out,
                          json_dict=None, parallel_update=False) :
         Update a firmware component or target system
     is_fungible_component(component_name) :
@@ -97,7 +97,7 @@ class BaseRFTarget(RFTarget):
     # pylint: disable=too-many-positional-arguments
     def update_component(
         self,
-        param_list,
+        cmd_args,
         update_uri,
         update_file,
         time_out,
@@ -107,7 +107,7 @@ class BaseRFTarget(RFTarget):
         """
         Method to perform FW update using redfish requests
         Parameters:
-            param_list List or file of special parameters used for the update
+            cmd_args Parsed input command arguments
             update_uri Target Redfish URI used for the update
             update_file File used for the update
             time_out Timeout period in seconds for the requests
@@ -119,6 +119,9 @@ class BaseRFTarget(RFTarget):
         """
         special_targets = ""
         task_id = ""
+        # cmd_args.special - User passed in JSON Update Parameters or file with Update Parameters
+        param_list = cmd_args.special
+
         if param_list is not None:
             if self.validate_json(param_list):
                 special_targets = param_list
@@ -195,7 +198,7 @@ class BaseRFTarget(RFTarget):
             True if the package is an HGX package or
             False if the package is not an HGX package
         """
-        hgx_platforms = ["HGX", "4764", "4974", "4975", "MGX-NVL16"]
+        hgx_platforms = ["HGX", "4059", "4764", "4974", "4975", "MGX-NVL16"]
         if next((platform for platform in hgx_platforms if platform in pkg_name), None):
             return True
         return False
