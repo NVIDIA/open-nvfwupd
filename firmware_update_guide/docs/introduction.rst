@@ -39,7 +39,7 @@ Supported Platforms
 
 The following platforms are supported in Grace Blackwell:
 
--  NVIDIA GB200 NVL
+-  NVIDIA GB200 NVL, NVIDIA GB300 NVL
 
 
 Updating Grace Blackwell Firmware
@@ -86,7 +86,7 @@ Command Syntax
 
   Global options:
       -t --target ip=<BMC IP> user=<BMC login id> password=<BMC password> port=<port num for port forwarding> servertype=<Type of server>
-            BMC target comprising BMC IP address and BMC login credentials. servertype and port are optional. Valid value for servertype is one of [DGX, HGX, HGXB100, GB200, MGX-NVL, GB200Switch]
+            BMC target comprising BMC IP address and BMC login credentials. servertype and port are optional. Valid value for servertype is one of [DGX, HGX, HGXB100, GB200, GB300, MGX-NVL, GB200Switch]
 
       -c --config Path for config file (optional).
             Configure tool behavior
@@ -101,7 +101,8 @@ Command Syntax
 
       <Global options...> show_version [ options... ]
           -p  --package                PLDM firmware package                                       
-          -j  --json                   show output in JSON                                         
+          -j  --json                   show output in JSON
+          -s  --staged                 Show staged firmware versions                                  
 
       <Global options...> update_fw [ options... ]
           -p  --package                PLDM firmware package                                       
@@ -111,6 +112,8 @@ Command Syntax
           -s  --special                Special Update json file                                    
           -d  --details                Show update progress in table format                        
           -j  --json                   show output in JSON. Must be paired with the -b background option, and always bypasses update confirmation prompt.
+          -u  --staged_update          SPI Staged Update                                           
+          -a  --staged_activate_update SPI and Activate Staged Update
 
       <Global options...> force_update [ options... ]
           enable|disable|status        enable, disable or check current force update value on target

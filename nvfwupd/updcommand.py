@@ -400,6 +400,29 @@ class FwUpdCmd:
 
         if global_args.target is not None and len(global_args.target) != 1:
             given_opts = []
+            ip_addr = None
+            # Extract IP address from the target list
+            for input_opt in global_args.target:
+                key_value = input_opt.split("=")
+                if len(key_value) == 2 and key_value[0].lower() == "ip":
+                    ip_addr = key_value[1].strip("[]")  # Remove square brackets
+                    break  # Stop after finding the IP
+
+            if ip_addr is None:
+                Util.bail_nvfwupd(
+                    1, "Error: Missing target IP in command input", print_json=json_dict
+                )
+
+            # Reconstruct the target list with the modified IP
+            updated_target = []
+            for input_opt in global_args.target:
+                if input_opt.startswith("ip="):
+                    updated_target.append(f"ip={ip_addr}")  # Update IP without brackets
+                else:
+                    updated_target.append(input_opt)  # Keep other values unchanged
+
+            global_args.target = updated_target  # Update the target list
+
             for input_opt in global_args.target:
                 if input_opt.split("=")[0].lower() not in (
                     "ip",
@@ -546,7 +569,7 @@ class FwUpdCmd:
                 if Util.is_sanitize:
                     target_str = Util.sanitize_log(target_str)
                 for each in target_ip.target:
-                    tokens = Util.get_tokens(each, "=")
+                    tokens = each.split("=", 1)
                     if len(tokens) < 2:
                         if not json_dict:
                             print(len(tokens))
@@ -631,6 +654,7 @@ class FwUpdCmd:
                 "dgx",
                 "hgx",
                 "gb200",
+                "gb300",
                 "hgxb100",
                 "mgx-nvl",
                 "gb200switch",
@@ -864,7 +888,7 @@ class FwUpdCmdShowVersion(FwUpdCmd):
     get_output_json_parallel(input_param):
         Acquire system inventories in parallel using input
         parameters
-    get_output_json(target_ip, pkg_parser, recipe_list, json_dict=None):
+    get_output_json(target_ip, pkg_parser, recipe_list, show_staged=False, json_dict=None):
         Acquire system inventory for a target system and provide
         information in JSON format
     print_output_json(json_output, recipe_list, cmd_args, all_inv_status, json_error_return=None):
@@ -942,7 +966,7 @@ class FwUpdCmdShowVersion(FwUpdCmd):
 
         for target_ip in list_of_target_ips:
             inv_err, json_output = self.get_output_json(
-                target_ip, pkg_parser, recipe_list, json_error_return
+                target_ip, pkg_parser, recipe_list, cmd_args.staged, json_error_return
             )
 
             all_inv_status = all_inv_status | inv_err
@@ -967,6 +991,7 @@ class FwUpdCmdShowVersion(FwUpdCmd):
 
         target_ip = input_param.target_ip
         pkg_parser = input_param.package_parser
+        cmd_args = input_param.cmd_args
         # packages are optional for show_version
         if input_param.package_name is None:
             recipe_list = None
@@ -988,15 +1013,20 @@ class FwUpdCmdShowVersion(FwUpdCmd):
                 # Clean up untared files because show_version does not need them
                 pkg_parser.remove_files()
 
-        return self.get_output_json(target_ip, pkg_parser, recipe_list, json_dict)
+        return self.get_output_json(
+            target_ip, pkg_parser, recipe_list, cmd_args.staged, json_dict
+        )
 
-    def get_output_json(self, target_ip, pkg_parser, recipe_list, json_dict=None):
+    def get_output_json(
+        self, target_ip, pkg_parser, recipe_list, show_staged=False, json_dict=None
+    ):
         """
         create JSON object for show_version output
         Parameters:
             target_ip Target Namespace containing ip, username, password
             pkg_parser An initialized package parser class
             recipe_list A list of update packages
+            show_staged Boolean indicating whether to display staged components
             json_dict Optional JSON Dictionary used for JSON Mode and Prints
         Returns:
             0, and a dictionary with system information and firmware inventory or
@@ -1058,7 +1088,11 @@ class FwUpdCmdShowVersion(FwUpdCmd):
 
         rf_target = self.init_platform(dut_access, platform_type, json_dict)
         for each_key, val in inv_dict.items():
-            firmware_dev = {"AP Name": "", "Sys Version": ""}
+            if show_staged:
+                firmware_dev = {"AP Name": "", "Sys Version": "", "Staged Version": ""}
+            else:
+                firmware_dev = {"AP Name": "", "Sys Version": ""}
+
             dev_url = each_key
             ap_inv_name = dev_url
             if "OSFP" not in dev_url:
@@ -1066,6 +1100,7 @@ class FwUpdCmdShowVersion(FwUpdCmd):
             firmware_dev["AP Name"] = ap_inv_name
             ap_name = ap_inv_name.lower()
             sys_version = ""
+            staged_version = "N/A"
             up_to_date = ""
             pkg_version = ""
             try:
@@ -1074,6 +1109,21 @@ class FwUpdCmdShowVersion(FwUpdCmd):
                 up_to_date = "Yes"
             except KeyError:
                 pass
+
+            if show_staged:
+                try:
+                    if (
+                        val["Oem"]["Nvidia"]["InactiveFirmwareSlot"]["FirmwareState"]
+                        == "Staged"
+                    ):
+                        staged_version = val["Oem"]["Nvidia"]["InactiveFirmwareSlot"][
+                            "Version"
+                        ]
+                except KeyError:
+                    staged_version = "N/A"
+                    pass
+                firmware_dev["Staged Version"] = staged_version
+
             if recipe_list and len(recipe_list) != 0:
                 # use pkg parse output to match AP using names if -p was given
                 if rf_target.is_fungible_component(ap_name):
@@ -1116,7 +1166,12 @@ class FwUpdCmdShowVersion(FwUpdCmd):
         """
 
         if cmd_args.json is True:
-            if json_error_return != None and all_inv_status != 0:
+            if (
+                json_error_return != None
+                and all_inv_status != 0
+                and "Error" in json_error_return
+                and len(json_error_return["Error"]) != 0
+            ):
                 # Print the error array in this instance for headless mode
                 # If some inventory is present, but we are still in the error state,
                 # Output this information alongside the error output
@@ -1139,35 +1194,86 @@ class FwUpdCmdShowVersion(FwUpdCmd):
             fw_devices = json_output.get("Firmware Devices", [])
             print("Firmware Devices:")
             if recipe_list is not None and len(recipe_list) != 0:
-                print(
-                    "{:<40} {:<30} {:<30} {:<10}".format(
-                        "AP Name", "Sys Version", "Pkg Version", "Up-To-Date"
+                if cmd_args.staged:
+                    print(
+                        "{:<40} {:<30} {:<30} {:<30} {:<10}".format(
+                            "AP Name",
+                            "Sys Version",
+                            "Staged Version",
+                            "Pkg Version",
+                            "Up-To-Date",
+                        )
                     )
-                )
-                print(
-                    "{:<40} {:<30} {:<30} {:<10}".format(
-                        "-------", "-----------", "-----------", "----------"
+                    print(
+                        "{:<40} {:<30} {:<30} {:<30} {:<10}".format(
+                            "-------",
+                            "-----------",
+                            "--------------",
+                            "-----------",
+                            "----------",
+                        )
                     )
-                )
-                for each_fw in fw_devices:
+                    for each_fw in fw_devices:
+                        print(
+                            "{:<40} {:<30} {:<30} {:<30} {:<10}".format(
+                                each_fw.get("AP Name", "N/A"),
+                                each_fw.get("Sys Version", "N/A"),
+                                each_fw.get("Staged Version", "N/A"),
+                                each_fw.get("Pkg Version", "N/A"),
+                                each_fw.get("Up-To-Date", "N/A"),
+                            )
+                        )
+                else:
                     print(
                         "{:<40} {:<30} {:<30} {:<10}".format(
-                            each_fw.get("AP Name", "N/A"),
-                            each_fw.get("Sys Version", "N/A"),
-                            each_fw.get("Pkg Version", "N/A"),
-                            each_fw.get("Up-To-Date", "N/A"),
+                            "AP Name", "Sys Version", "Pkg Version", "Up-To-Date"
                         )
                     )
-            else:
-                print("{:<40} {:<30}".format("AP Name", "Sys Version"))
-                print("{:<40} {:<30}".format("-------", "-----------"))
-                for each_fw in fw_devices:
+
                     print(
-                        "{:<40} {:<30}".format(
-                            each_fw.get("AP Name", "N/A"),
-                            each_fw.get("Sys Version", "N/A"),
+                        "{:<40} {:<30} {:<30} {:<10}".format(
+                            "-------", "-----------", "-----------", "----------"
                         )
                     )
+                    for each_fw in fw_devices:
+                        print(
+                            "{:<40} {:<30} {:<30} {:<10}".format(
+                                each_fw.get("AP Name", "N/A"),
+                                each_fw.get("Sys Version", "N/A"),
+                                each_fw.get("Pkg Version", "N/A"),
+                                each_fw.get("Up-To-Date", "N/A"),
+                            )
+                        )
+            else:
+                if cmd_args.staged:
+                    print(
+                        "{:<40} {:<30} {:<30}".format(
+                            "AP Name", "Sys Version", "Staged Version"
+                        )
+                    )
+                    print(
+                        "{:<40} {:<30} {:<30}".format(
+                            "-------", "-----------", "--------------"
+                        )
+                    )
+                    for each_fw in fw_devices:
+                        print(
+                            "{:<40} {:<30} {:<30}".format(
+                                each_fw.get("AP Name", "N/A"),
+                                each_fw.get("Sys Version", "N/A"),
+                                each_fw.get("Staged Version", "N/A"),
+                            )
+                        )
+                else:
+                    print("{:<40} {:<30}".format("AP Name", "Sys Version"))
+                    print("{:<40} {:<30}".format("-------", "-----------"))
+                    for each_fw in fw_devices:
+                        print(
+                            "{:<40} {:<30}".format(
+                                each_fw.get("AP Name", "N/A"),
+                                each_fw.get("Sys Version", "N/A"),
+                            )
+                        )
             print("-" * 120)
 
 
@@ -1252,39 +1358,59 @@ class FwUpdCmdForceUpdate(FwUpdCmd):
                         print_json=json_output,
                     )
 
-            if cmd_args.force_upd_action[0].lower() == "status":
-                status, task_dict = dut_access.dispatch_request(
-                    "GET", "/redfish/v1/UpdateService", None
+            status, task_dict = dut_access.dispatch_request(
+                "GET", "/redfish/v1/UpdateService", None
+            )
+
+            if not status:
+                Util.bail_nvfwupd(
+                    1,
+                    "Failed to get UpdateService data from the target.",
+                    Util.BailAction.PRINT_DIVIDER,
+                    print_json=json_output,
                 )
-                if not status:
+                continue
+
+            push_uri_dict = task_dict.get("HttpPushUriOptions")
+            if push_uri_dict is not None:
+                force_upd = push_uri_dict.get("ForceUpdate")
+
+                if force_upd is None:
                     Util.bail_nvfwupd(
                         1,
-                        "Failed to get UpdateService data from the target.",
+                        "The force_update command is not supported for this platform.",
                         Util.BailAction.PRINT_DIVIDER,
                         print_json=json_output,
                     )
                     continue
+            else:
+                Util.bail_nvfwupd(
+                    1,
+                    "The force_update command is not supported for this platform.",
+                    Util.BailAction.PRINT_DIVIDER,
+                    print_json=json_output,
+                )
+                continue
+
+            if cmd_args.force_upd_action[0].lower() == "status":
                 if cmd_args.json:
                     json_output["Output"].append(task_dict)
                     continue
 
-                push_uri_dict = task_dict.get("HttpPushUriOptions")
-                if push_uri_dict is not None:
-                    force_upd = push_uri_dict.get("ForceUpdate")
-                    if force_upd is not None:
-                        Util.bail_nvfwupd(
-                            0,
-                            f"ForceUpdate is set to {force_upd}",
-                            Util.BailAction.PRINT_DIVIDER,
-                            print_json=json_output,
-                        )
-                        continue
-                Util.bail_nvfwupd(
-                    1,
-                    "Failed to get ForceUpdate status in UpdateService data.",
-                    Util.BailAction.PRINT_DIVIDER,
-                    print_json=json_output,
-                )
+                if force_upd is not None:
+                    Util.bail_nvfwupd(
+                        0,
+                        f"ForceUpdate is set to {force_upd}",
+                        Util.BailAction.PRINT_DIVIDER,
+                        print_json=json_output,
+                    )
+                else:
+                    Util.bail_nvfwupd(
+                        1,
+                        "Failed to get ForceUpdate status in UpdateService data.",
+                        Util.BailAction.PRINT_DIVIDER,
+                        print_json=json_output,
+                    )
                 continue
             force_upd_val = False
             if cmd_args.force_upd_action[0].lower() == "enable":
@@ -1466,6 +1592,21 @@ class FwUpdCmdUpdateFirmware(FwUpdCmd):
             all_update_status = 1
             return None, all_update_status
 
+        # check staged update support
+        if type(rf_target).__name__ not in [
+            "HGXB100RFTarget",
+            "GB200RFTarget",
+            "ConfigTarget",
+        ] and (cmd_args.staged_update or cmd_args.staged_activate_update):
+            Util.bail_nvfwupd_threadsafe(
+                1,
+                "Target Platform does not support staged update",
+                print_json=json_output,
+                parallel_update=parallel_update,
+            )
+            all_update_status = 1
+            return None, all_update_status
+
         if not cmd_args.json:
             print(f"FW package: {recipe_list}")
             self.logger.debug_print(cmd_args.background)
@@ -1600,6 +1741,13 @@ class FwUpdCmdUpdateFirmware(FwUpdCmd):
                 print_json=json_output,
             )
 
+        if cmd_args.staged_update and cmd_args.staged_activate_update:
+            Util.bail_nvfwupd(
+                1,
+                "Stage only option is not supported alongside stage and activate option",
+                print_json=json_output,
+            )
+
         list_of_target_ips = self.validate_target_json(global_args, json_output)
 
         # determine if parallel update is set
@@ -1684,6 +1832,7 @@ class FwUpdCmdUpdateFirmware(FwUpdCmd):
                                 )
                             # Remove the unreachable target from the list and continue
                             input_with_task_id.remove(target)
+                            all_update_status = 1
                             continue
 
                         # save rf_target
@@ -1748,11 +1897,20 @@ class FwUpdCmdUpdateFirmware(FwUpdCmd):
 
                         # if completed or failed, remove it from the list
                         if (
-                            job_state in TASK_SUCCESS_STATES
+                            job_state is None
+                            or job_state in TASK_SUCCESS_STATES
                             or job_state in TASK_FAILURE_STATES
                             or ret_code != 0
                         ):
                             entry.task_id_list.remove(task)
+
+                            # set failure state
+                            if (
+                                job_state is None
+                                or job_state in TASK_FAILURE_STATES
+                                or ret_code != 0
+                            ):
+                                all_update_status = 1
 
             # If running in background mode, exit
             if cmd_args.background is True:
@@ -1789,14 +1947,19 @@ class FwUpdCmdUpdateFirmware(FwUpdCmd):
 
                         # if completed or failed, remove it from the list
                         if (
-                            job_state in TASK_SUCCESS_STATES
+                            job_state is None
+                            or job_state in TASK_SUCCESS_STATES
                             or job_state in TASK_FAILURE_STATES
                             or ret_code != 0
                         ):
                             entry.task_id_list.remove(task)
 
                             # set failure state
-                            if job_state in TASK_FAILURE_STATES or ret_code != 0:
+                            if (
+                                job_state is None
+                                or job_state in TASK_FAILURE_STATES
+                                or ret_code != 0
+                            ):
                                 all_update_status = 1
 
                 # Process removals

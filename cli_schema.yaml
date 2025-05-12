@@ -20,7 +20,7 @@ GlobalOptions:
   Usage: "[-t BMC-TARGET] [-v] < command >"
   Options:
     - Target:
-        Description: BMC target comprising BMC IP address and BMC login credentials. servertype and port are optional. Valid value for servertype is one of [DGX, HGX, HGXB100, GB200, MGX-NVL, GB200Switch]
+        Description: BMC target comprising BMC IP address and BMC login credentials. servertype and port are optional. Valid value for servertype is one of [DGX, HGX, HGXB100, GB200, GB300, MGX-NVL, GB200Switch]
         Short: t
         Long: target
         Arg: ip=<BMC IP> user=<BMC login id> password=<BMC password> port=<port num for port forwarding> servertype=<Type of server>
@@ -73,6 +73,10 @@ Commands:
        Action: store_true
        Required: false
        Validator: validate_recipe
+     - Description: Show staged firmware versions
+       Short: 's'
+       Long: 'staged'
+       Action: store_true
   - Name: update_fw
     Class: UpdateFirmware
     RequireGlobalOption: true
@@ -111,6 +115,15 @@ Commands:
         Action: store_true
         Required: false
         Validator: validate_recipe
+      - Description: SPI Staged Update
+        Short: u
+        Long: staged_update
+        Action: store_true
+      - Description: SPI and Activate Staged Update
+        Short: a
+        Long: staged_activate_update
+        Action: store_true
+
   - Name: force_update
     Class: ForceUpdate
     RequireGlobalOption: true

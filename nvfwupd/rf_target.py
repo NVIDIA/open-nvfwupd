@@ -19,6 +19,7 @@ import sys
 import time
 import json
 import re
+import os
 from datetime import datetime
 from tabulate import tabulate  # pylint: disable=import-error
 from nvfwupd.utils import Util
@@ -50,7 +51,7 @@ class RFTarget(ABC):
                                     max_retries=3, interval=5) :
         Send a Redfish request to the target URI up to the maximum
         number of retries
-    update_component(param_list, update_uri, update_file, time_out,
+    update_component(cmd_args, update_uri, update_file, time_out,
                          json_dict=None, parallel_update=False) :
         Update a firmware component or target system
     is_fungible_component(component_name) :
@@ -100,11 +101,17 @@ class RFTarget(ABC):
         "hgx": "BaseRFTarget",
         "hgxb100": "HGXB100RFTarget",
         "gb200": "GB200RFTarget",
+        "gb300": "GB200RFTarget",
         "mgx-nvl": "MGXNVLRFTarget",
         "gb200switch": "GB200SwitchTarget",
     }
 
-    TARGET_CLASS_DICT = {"hgx": "BaseRFTarget", "dgx": "DGX_RFTarget"}
+    TARGET_CLASS_DICT = {
+        "hgx": "BaseRFTarget",
+        "dgx": "DGX_RFTarget",
+        "gb200 nvl": "GB200RFTarget",
+        "gb300 nvl": "GB200RFTarget",
+    }
 
     TARGET_TYPE_CONFIG_DICT = {"ami": "DGX_RFTarget", "openbmc": "BaseRFTarget"}
 
@@ -176,7 +183,7 @@ class RFTarget(ABC):
     @abstractmethod
     def update_component(
         self,
-        param_list,
+        cmd_args,
         update_uri,
         update_file,
         time_out,
@@ -279,6 +286,13 @@ class RFTarget(ABC):
             another error occurs
         """
 
+        # Get TaskState if present
+        task_state = my_dict.get("TaskState")
+
+        # set task_state to all lowercase if present
+        if task_state is not None:
+            task_state = task_state.lower()
+
         if not print_json:
             # Print delineator
             Logger.indent_print("-" * 120)
@@ -288,42 +302,39 @@ class RFTarget(ABC):
 
         if print_json:
             print_json["Output"].append(my_dict)
-            if status is False or "error" in my_dict:
-                return 1, "error"
-            return 0, my_dict["TaskState"].lower()
+            if status is False:
+                return 1, task_state
+            return 0, task_state
 
         if "error" in my_dict:
             Logger.debug_print(f"{my_dict}")
             Logger.indent_print(f"Input Taskid does not exist: {task_id} ")
-            return 1, "error"
+            return 1, task_state
 
         if status is False:
             Logger.debug_print(f"{my_dict}")
             try:
                 Logger.indent_print(f"{my_dict} ", 1)
-                return 1, "error"
+                return 1, task_state
             except KeyError:
-                return 1, "error"
+                return 1, task_state
 
-        Logger.indent_print(f"StartTime: {my_dict['StartTime']}", 1)
-        Logger.indent_print(f"TaskState: {my_dict['TaskState']}", 1)
+        Logger.indent_print(f"StartTime: {my_dict.get('StartTime')}", 1)
+        Logger.indent_print(f"TaskState: {my_dict.get('TaskState')}", 1)
 
         try:
             Logger.indent_print(f"PercentComplete: {my_dict['PercentComplete']}", 1)
         except KeyError:
             pass
 
-        Logger.indent_print(f"TaskStatus: {my_dict['TaskStatus']}", 1)
+        Logger.indent_print(f"TaskStatus: {my_dict.get('TaskStatus', 'Unknown')}", 1)
 
         try:
             Logger.indent_print(f"EndTime: {my_dict['EndTime']}", 1)
         except KeyError:
             pass
         # Calculate Overall time if task is completed
-        if (
-            my_dict["TaskState"].lower() in self.TASK_FAILURE_STATES
-            or my_dict["TaskState"].lower() == "completed"
-        ):
+        if task_state in self.TASK_FAILURE_STATES or task_state == "completed":
             # Timestamp format is different for hmc/bmc
             try:
                 # Calculate overall timetaken by the task
@@ -337,10 +348,10 @@ class RFTarget(ABC):
         Logger.indent_print(
             f"Overall Task Status: {json.dumps(my_dict, sort_keys=False, indent=4)}", 1
         )
-        if my_dict["TaskState"].lower() in self.TASK_PENDING_STATES:
+        if task_state in self.TASK_PENDING_STATES:
             Logger.indent_print("Update is still running.")
             err_status = 0
-        elif my_dict["TaskState"] == "Completed":
+        elif task_state == "completed":
             task_status = my_dict.get("TaskStatus", "Unknown")
             if task_status == "OK":
                 Logger.indent_print("Update is successful.")
@@ -352,7 +363,7 @@ class RFTarget(ABC):
             Logger.indent_print("Update failed with errors")
             err_status = 1
 
-        return err_status, my_dict["TaskState"].lower()
+        return err_status, task_state
 
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
@@ -720,6 +731,33 @@ class RFTarget(ABC):
             )
             err_status = 1
             return err_status, None
+
+        if cmd_args.staged_update or cmd_args.staged_activate_update:
+            try:
+                multipart_option_support = my_dict["Oem"]["Nvidia"][
+                    "MultipartHttpPushUriOptions"
+                ]["UpdateOptionSupport"]
+                if (
+                    "StageAndActivate" not in multipart_option_support
+                    or "StageOnly" not in multipart_option_support
+                ):
+                    Util.bail_nvfwupd(
+                        1,
+                        "System does not support staged update",
+                        Util.BailAction.DO_NOTHING,
+                        print_json=json_dict,
+                    )
+                    err_status = 1
+                    return err_status, None
+            except KeyError:
+                Util.bail_nvfwupd(
+                    1,
+                    "System does not support staged update",
+                    Util.BailAction.DO_NOTHING,
+                    print_json=json_dict,
+                )
+                err_status = 1
+                return err_status, None
         # fetch the URI service for POST
 
         update_uri = self.get_update_uri(my_dict)
@@ -741,7 +779,7 @@ class RFTarget(ABC):
                 break
             # send update requests here
             task_id = self.update_component(
-                cmd_args.special, update_uri, each, time_out, json_dict, parallel_update
+                cmd_args, update_uri, each, time_out, json_dict, parallel_update
             )
             if task_id is None:
                 Util.bail_nvfwupd(

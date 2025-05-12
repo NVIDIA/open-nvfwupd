@@ -20,7 +20,7 @@ To update the complete BMC tray:
 
 1. Create a JSON file like the ``BMC_Full.json`` file in the example.
 
-2. Use the nvfwupd tool and run the update_fw command.
+2. Use the ``nvfwupd.py`` tool and run the ``update_fw`` command.
 
 In the package name, the BMC tray update packages can be identified by ``GB200-P4972``.
 
@@ -38,7 +38,7 @@ Here is the output:
         "Targets": []
     }
 
-    $ nvfwupd.py -t ip=<BMC IP> user=*** password=*** - update_fw -s BMC_Full.json -p nvfw_GB200-P4972_0004_240808.1.1_custom_prod-signed.fwpkg
+    $ nvfwupd.py -t ip=<BMC IP> user=*** password=*** update_fw -s BMC_Full.json -p nvfw_GB200-P4972_0004_240808.1.1_custom_prod-signed.fwpkg
 
     Updating ip address: ip=XXXX
     FW package: ['nvfw_GB200-P4972_0004_240808.1.1_custom_prod-signed.fwpkg']
@@ -62,6 +62,9 @@ Here is the output:
     ---------------------------------------------------------------------------------------
     Error Code: 0
 
+.. note::
+    For open-nvfwupd 1.0.1 and later, the ``-s`` option is no longer required when updating the entire BMC tray. The default "Targets" are all components without ``force_update``.
+
 Updating the GB200 NVL Compute Tray
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -69,7 +72,7 @@ To update the compute tray:
 
 1. Create a JSON file, like the ``Compute_Full.json`` file, in the example.
 
-2. Use the ``nvfwupd`` tool and run the update_fw command.
+2. Use the ``nvfwupd.py`` tool and run the ``update_fw`` command.
 
 In the package name, the Compute tray update packages can be identified by ``GB200-P4975``.
 
@@ -234,7 +237,7 @@ To complete a firmware update of a component:
     $ cat CPU.json
 
     {
-        "Targets":["/redfish/v1/UpdateService/FirmwareInventory/HGX_CPU_0"]
+        "Targets":["/redfish/v1/UpdateService/FirmwareInventory/HGX_FW_CPU_0"]
     }
 
     $ nvfwupd.py --target ip=<BMC IP> user=*** password=*** servertype=GB200 update_fw -s CPU.json -p nvfw_GB200-P4975_0004_240717.1.0_custom_prod-signed.fwpkg
@@ -324,7 +327,7 @@ To display the current versions of switch tray components, run the show_version 
     Error Code: 0
 
 .. note::
-    The ``SSD``, ``transceiver``, and ``ASIC`` can only be updated using inband update methods. These components cannot be updated using nvfwupd.
+    The ``SSD``, ``transceiver``, and ``ASIC`` can only be updated using inband update methods. These components cannot be updated using open-nvfwupd.
 
 Full Bundle Firmware Update for GB200 NVL Switch Components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

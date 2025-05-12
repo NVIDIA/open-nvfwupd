@@ -42,7 +42,7 @@ class DGX_RFTarget(RFTarget):
     -------
     is_fungible_component(component_name) :
         Determines if a component is fungible for a given system
-    update_component(param_list, update_uri, update_file, time_out,
+    update_component(cmd_args, update_uri, update_file, time_out,
                          json_dict=None, parallel_update=False) :
         Update a firmware component or target system
     get_version_sku(identifier, pldm_version_dict, ap_name) :
@@ -94,7 +94,7 @@ class DGX_RFTarget(RFTarget):
     # pylint: disable=too-many-positional-arguments
     def update_component(
         self,
-        param_list,
+        cmd_args,
         update_uri,
         update_file,
         time_out,
@@ -105,7 +105,7 @@ class DGX_RFTarget(RFTarget):
         Method to perform FW update using redfish request for DGX platforms
         returns task id
         Parameters:
-            param_list List or file of special parameters used for the update
+            cmd_args Parsed input command arguments
             update_uri Target Redfish URI used for the update
             update_file File used for the update
             time_out Timeout period in seconds for the requests
@@ -118,6 +118,25 @@ class DGX_RFTarget(RFTarget):
         task_id = ""
         status = False
         response_dict = None
+
+        # cmd_args.special - User passed in JSON Update Parameters or file with Update Parameters
+        param_list = cmd_args.special
+
+        # Check if special update file was provided
+        if param_list is None:
+            file_name = os.path.basename(update_file)
+            hgx_platforms = ["HGX"]
+            if next(
+                (platform for platform in hgx_platforms if platform in file_name), None
+            ):
+                # GPU Tray Update (wrapper bundle)
+                json_params = {
+                    "Targets": ["/redfish/v1/UpdateService/FirmwareInventory/HGX_0"]
+                }
+            else:
+                # MB Tray Update
+                json_params = {}
+            param_list = json.dumps(json_params)
 
         if param_list is not None and os.path.isfile(param_list[0]):
             status, response_dict = self.target_access.multipart_file_upload(
@@ -143,15 +162,6 @@ class DGX_RFTarget(RFTarget):
                 upd_params_file=None,
                 time_out=time_out,
                 updparams_json=param_list,
-                json_prints=json_dict,
-                parallel_update=parallel_update,
-            )
-        else:
-            status, response_dict = self.target_access.multipart_file_upload(
-                url=update_uri,
-                pkg_file=update_file,
-                upd_params_file=None,
-                time_out=time_out,
                 json_prints=json_dict,
                 parallel_update=parallel_update,
             )
@@ -324,6 +334,13 @@ class DGX_RFTarget(RFTarget):
             suppress_err=True,
         )
         if status is False or psu_dict is None:
+            self.target_access.dut_logger.cli_log(
+                f"DGX PowerSupplies URI failed to return: {ap_name}", log_file_only=True
+            )
             return None
         part_num = psu_dict.get("PartNumber")
+        if part_num is None:
+            self.target_access.dut_logger.cli_log(
+                f"DGX PSU PartNumber not present: {ap_name}", log_file_only=True
+            )
         return part_num
