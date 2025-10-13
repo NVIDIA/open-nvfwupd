@@ -1,6 +1,7 @@
-python>=3.10
-requests
-PyYAML
-paramiko
 scp
 tabulate
+PyYAML>=5.4.1
+requests>=2.31.0
+paramiko>=3.5.1
+urllib3>=1.26.15
+rich==14.0.0

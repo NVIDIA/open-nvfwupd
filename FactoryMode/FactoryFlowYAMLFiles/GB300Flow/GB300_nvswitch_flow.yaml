@@ -1,0 +1,170 @@
+# Global settings
+settings:
+  execute_on_error: "error_handler_collect_nvdebug_logs"  # Global error handler
+
+steps:
+  # Independent Parallel Flows
+  - name: "Switch Tray Update Independent Flow"
+    independent_flows:
+      # Switch Flow
+      - name: "Switch Update Flow"
+        steps:
+          - name: check_switch_ssh_connection
+            device_type: switch
+            device_id: switch1
+            operation: show_system_version
+            jump_on_success: "switch_booted_to_os"
+            jump_on_failure: "power_on_system"
+
+          - name: power_on_system
+            tag: power_on_system
+            device_type: switch
+            device_id: switch1
+            operation: reboot_system
+
+          - name: check_switch_fw_versions_for_jumping
+            tag: switch_booted_to_os
+            device_type: switch
+            device_id: switch1
+            operation: check_fw_versions
+            jump_on_failure: "switch_not_updated"
+            parameters:
+              expected_versions:
+                BMC: "${switch_bmc_final_version}"
+                FPGA: "${switch_fpga_final_version}"
+                EROT: "${switch_erot_final_version}"
+                CPLD1: "${switch_cpld1_final_version}"
+                BIOS: "${switch_bios_final_version}"
+              operator: "=="
+
+          - name: check_switch_os_versions
+            device_type: switch
+            device_id: switch1
+            operation: check_os_versions
+            jump_on_success: "switch_fully_updated"
+            jump_on_failure: "switch_not_updated"
+            parameters:
+              expected_versions:
+                nvos: "${switch_nvos_final_version}"
+              operator: "=="
+
+          - name: check_switch_host_os_version
+            tag: switch_not_updated
+            device_type: switch
+            device_id: switch1
+            operation: show_system_version
+
+          - name: check_switch_fw_version
+            device_type: switch
+            device_id: switch1
+            operation: show_platform_firmware
+
+          - name: configure_ssh_service_timeout
+            device_type: switch
+            device_id: switch1
+            operation: set_ssh_inactivity_timeout
+            parameters:
+              timeout_seconds: 60
+
+          - name: scp_bmc_bundle_to_switch
+            device_type: switch
+            device_id: switch1
+            operation: scp_tool_to_os
+            parameters:
+              tool_file_path: "${nvswitch_bundles_folder}/${switch_bmc_bundle_name}"
+
+          - name: scp_bios_bundle_to_switch
+            device_type: switch
+            device_id: switch1
+            operation: scp_tool_to_os
+            parameters:
+              tool_file_path: "${nvswitch_bundles_folder}/${switch_bios_bundle_name}"
+
+          - name: scp_nvos_bundle_to_switch
+            device_type: switch
+            device_id: switch1
+            operation: scp_tool_to_os
+            parameters:
+              tool_file_path: "${nvswitch_bundles_folder}/${switch_nvos_bundle_name}"
+
+          - name: extract_scp_fetch_and_install_cpld_firmware
+            device_type: switch
+            device_id: switch1
+            operation: extract_scp_fetch_and_install_cpld_firmware
+            parameters:
+              firmware_url: "${switch_bmc_bundle_uri}"
+              fwpkg_file_path: "${nvswitch_bundles_folder}/${switch_cpld_file_name}"
+              component: "CPLD1"
+
+          - name: fetch_and_install_bmc_firmware
+            device_type: switch
+            device_id: switch1
+            operation: fetch_and_install_switch_firmware
+            parameters:
+              firmware_url: "${switch_bmc_bundle_uri}"
+              firmware_file_name: "${switch_bmc_bundle_name}"
+              component: "BMC"
+              timeout: 1000
+
+          - name: fetch_and_install_fpga_firmware
+            device_type: switch
+            device_id: switch1
+            operation: fetch_and_install_switch_firmware
+            parameters:
+              firmware_url: "${switch_bmc_bundle_uri}"
+              firmware_file_name: "${switch_bmc_bundle_name}"
+              component: "FPGA"
+
+          - name: fetch_and_install_erot_firmware
+            device_type: switch
+            device_id: switch1
+            operation: fetch_and_install_switch_firmware
+            parameters:
+              firmware_url: "${switch_bmc_bundle_uri}"
+              firmware_file_name: "${switch_bmc_bundle_name}"
+              component: "EROT"
+
+          - name: fetch_and_install_bios_firmware
+            device_type: switch
+            device_id: switch1
+            operation: fetch_and_install_switch_firmware
+            parameters:
+              firmware_url: "${switch_bios_bundle_uri}"
+              firmware_file_name: "${switch_bios_bundle_name}"
+              component: "BIOS"
+
+          - name: fetch_and_install_nvos
+            device_type: switch
+            device_id: switch1
+            operation: fetch_and_install_nvos
+            parameters:
+              firmware_url: "${switch_nvos_bundle_uri}"
+              firmware_file_name: "${switch_nvos_bundle_name}"
+
+          - name: reboot_system
+            device_type: switch
+            device_id: switch1
+            operation: reboot_system
+
+          - name: check_switch_fw_versions
+            device_type: switch
+            device_id: switch1
+            operation: check_fw_versions
+            parameters:
+              expected_versions:
+                BMC: "${switch_bmc_final_version}"
+                FPGA: "${switch_fpga_final_version}"
+                EROT: "${switch_erot_final_version}"
+                CPLD1: "${switch_cpld1_final_version}"
+                BIOS: "${switch_bios_final_version}"
+              operator: "=="
+
+          - name: final_check_switch_os_versions
+            tag: switch_fully_updated
+            device_type: switch
+            device_id: switch1
+            operation: check_os_versions
+            parameters:
+              expected_versions:
+                nvos: "${switch_nvos_final_version}"
+              operator: "=="

@@ -155,3 +155,26 @@ Commands:
        Action: store_true
        Required: false
        Validator: validate_recipe
+  - Name: factory_mode
+    Class: FactoryMode
+    RequireGlobalOption: false
+    Usage: factory_mode [-f FLOW_PATH] [-c CONFIG_PATH] [-l LOG_DIR]
+    Options:
+     - Description: Path to the flow YAML file
+       Short: f
+       Long: flow_path
+       Action: store
+       Required: true
+       Validator: validate_recipe
+     - Description: Path to the configuration YAML file
+       Short: c
+       Long: config_path
+       Action: store
+       Required: true
+       Validator: validate_recipe
+     - Description: Path to the log directory (optional). Defaults to current working directory
+       Short: l
+       Long: log_dir
+       Action: store
+       Required: false
+       Validator: ''

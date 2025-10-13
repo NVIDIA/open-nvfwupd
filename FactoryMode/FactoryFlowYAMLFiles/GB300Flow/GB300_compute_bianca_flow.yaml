@@ -1,0 +1,661 @@
+# Global settings
+settings:
+  execute_on_error: "error_handler_collect_nvdebug_logs"  # Global error handler
+
+# Define optional flows
+optional_flows:
+  failure_ac_cycle_flow:
+    - name: power_off_system
+      tag: failure_ac_cycle_flow_power_off_system
+      device_type: compute
+      device_id: compute1
+      operation: power_off
+      parameters:
+        base_uri: /redfish/v1/Systems/System_0/Actions/ComputerSystem.Reset
+        data: {"ResetType": "ForceOff"}
+
+    - name: ac_cycle_system
+      device_type: compute
+      device_id: compute1
+      operation: ac_cycle
+      parameters:
+        base_uri: /redfish/v1/Chassis/BMC_0/Actions/Oem/NvidiaChassis.AuxPowerReset
+        data: {"ResetType": "AuxPowerCycle"}
+      jump_on_failure: failure_ac_cycle_flow_power_off_system
+      wait_after_seconds: 180  # 3 minutes
+
+    - name: check_hmc_ready
+      device_type: compute
+      device_id: compute1
+      operation: wait_ap_ready
+      retry_count: 1
+      parameters:
+        ap_name: 
+          - HGX_FW_BMC_0
+          - HGX_FW_ERoT_BMC_0
+          - HGX_FW_ERoT_FPGA_0
+          - HGX_FW_ERoT_FPGA_1
+          - HGX_FW_ERoT_CPU_0
+          - HGX_FW_ERoT_CPU_1
+        timeout: 120
+        base_uri: /redfish/v1/UpdateService/FirmwareInventory
+
+    - name: check_erots_ready
+      device_type: compute
+      device_id: compute1
+      operation: wait_ap_ready
+      retry_count: 1
+      parameters:
+        ap_name: 
+          - HGX_ERoT_CPU_0
+          - HGX_ERoT_CPU_1
+        timeout: 60
+        base_uri: /redfish/v1/Chassis
+
+  enable_manual_boot_mode_flow:
+      # enable manual boot mode
+    - name: enable_manual_boot_mode_cpu_0
+      device_type: compute
+      device_id: compute1
+      operation: set_manual_boot_mode
+      wait_between_retries_seconds: 10
+      parameters:
+        base_uri: /redfish/v1/Chassis
+        ap_name: HGX_ERoT_CPU_0
+        check_volatile_dot: false
+        state: true
+      jump_on_failure: "check_hmc_version_for_manual_boot_mode"
+      jump_on_success: "jump_set_manual_boot_mode_cpu_1"
+
+    - name: check_hmc_version
+      tag: check_hmc_version_for_manual_boot_mode
+      device_type: compute
+      device_id: compute1
+      operation: check_versions
+      wait_between_retries_seconds: 10
+      parameters:
+        expected_versions:
+          HGX_FW_BMC_0: "${hmc_final_version}"
+        base_uri: /redfish/v1/UpdateService/FirmwareInventory/
+        operator: "=="
+      execute_optional_flow: standalone_hmc_flash_flow
+
+    - name: enable_manual_boot_mode_cpu_0
+      device_type: compute
+      device_id: compute1
+      operation: set_manual_boot_mode
+      wait_between_retries_seconds: 10
+      parameters:
+        base_uri: /redfish/v1/Chassis
+        ap_name: HGX_ERoT_CPU_0
+        check_volatile_dot: false
+        state: true
+      execute_optional_flow: "failure_ac_cycle_flow"
+
+    - name: enable_manual_boot_mode_cpu_1
+      tag: jump_set_manual_boot_mode_cpu_1
+      device_type: compute
+      device_id: compute1
+      operation: set_manual_boot_mode
+      wait_between_retries_seconds: 10
+      parameters:
+        base_uri: /redfish/v1/Chassis
+        ap_name: HGX_ERoT_CPU_1
+        check_volatile_dot: false
+        state: true
+      execute_optional_flow: "failure_ac_cycle_flow"
+
+    - name: power_off_system
+      tag: set_manual_boot_mode_flow_power_off_system
+      device_type: compute
+      device_id: compute1
+      operation: power_off
+      parameters:
+        base_uri: /redfish/v1/Systems/System_0/Actions/ComputerSystem.Reset
+        data: {"ResetType": "ForceOff"}
+
+    - name: ac_cycle_system
+      tag: ac_cycle_manual_boot_mode
+      device_type: compute
+      device_id: compute1
+      operation: ac_cycle
+      parameters:
+        base_uri: /redfish/v1/Chassis/BMC_0/Actions/Oem/NvidiaChassis.AuxPowerReset
+        data: {"ResetType": "AuxPowerCycle"}
+      jump_on_failure: set_manual_boot_mode_flow_power_off_system
+      wait_after_seconds: 180 # 3 minutes
+
+    - name: check_hmc_ready
+      device_type: compute
+      device_id: compute1
+      operation: wait_ap_ready
+      retry_count: 1
+      parameters:
+        ap_name: 
+          - HGX_FW_BMC_0
+          - HGX_FW_ERoT_BMC_0
+          - HGX_FW_ERoT_FPGA_0
+          - HGX_FW_ERoT_FPGA_1
+          - HGX_FW_ERoT_CPU_0
+          - HGX_FW_ERoT_CPU_1
+        timeout: 120
+        base_uri: /redfish/v1/UpdateService/FirmwareInventory
+      jump_on_failure: "ac_cycle_manual_boot_mode"
+
+    - name: check_erots_ready
+      device_type: compute
+      device_id: compute1
+      operation: wait_ap_ready
+      retry_count: 1
+      parameters:
+        ap_name: 
+          - HGX_ERoT_BMC_0
+          - HGX_ERoT_FPGA_0
+          - HGX_ERoT_FPGA_1
+          - HGX_ERoT_CPU_0
+          - HGX_ERoT_CPU_1
+        timeout: 60
+        base_uri: /redfish/v1/Chassis
+      jump_on_failure: "ac_cycle_manual_boot_mode"
+
+  standalone_hmc_flash_flow:
+    - name: monitor_background_copy_hgx_erot_bmc_0
+      device_type: compute
+      device_id: compute1
+      operation: monitor_background_copy
+      retry_count: 1
+      parameters:
+        ap_name: HGX_ERoT_BMC_0
+        base_uri: /redfish/v1/Chassis/
+        timeout: 600
+      execute_optional_flow: "failure_ac_cycle_flow"
+
+    - name: standalone_flash_hmc_firmware
+      device_type: compute
+      device_id: compute1
+      operation: pldm_fw_update
+      parameters:
+        bundle_path: "${compute_bundles_folder}/${no_sbios_hmc_firmware_bundle_name}"
+        target_uris: ["/redfish/v1/UpdateService/FirmwareInventory/HGX_FW_BMC_0"]
+        timeout: 1800
+        force_update: true
+        base_uri: /redfish/v1/UpdateService/update-multipart
+
+    - name: reboot_hmc
+      device_type: compute
+      device_id: compute1
+      operation: reboot_bmc
+      wait_between_retries_seconds: 10
+      parameters:
+        base_uri: /redfish/v1/Managers/HGX_BMC_0/Actions/Manager.Reset
+        data: {"ResetType":"GracefulRestart"}
+      wait_after_seconds: 60
+
+    - name: check_hmc_ready
+      device_type: compute
+      device_id: compute1
+      operation: wait_ap_ready
+      retry_count: 1
+      parameters:
+        ap_name: 
+          - HGX_FW_BMC_0
+          - HGX_FW_ERoT_BMC_0
+          - HGX_FW_ERoT_FPGA_0
+          - HGX_FW_ERoT_FPGA_1
+          - HGX_FW_ERoT_CPU_0
+          - HGX_FW_ERoT_CPU_1
+        timeout: 120
+        base_uri: /redfish/v1/UpdateService/FirmwareInventory
+      execute_optional_flow: "failure_ac_cycle_flow"
+
+    - name: check_erots_ready
+      device_type: compute
+      device_id: compute1
+      operation: wait_ap_ready
+      retry_count: 1
+      parameters:
+        ap_name: 
+          - HGX_ERoT_CPU_0
+          - HGX_ERoT_CPU_1
+        timeout: 60
+        base_uri: /redfish/v1/Chassis
+      execute_optional_flow: "failure_ac_cycle_flow"
+
+    - name: check_hmc_version
+      device_type: compute
+      device_id: compute1
+      operation: check_versions
+      parameters:
+        expected_versions:
+          HGX_FW_BMC_0: "${hmc_final_version}"
+        base_uri: /redfish/v1/UpdateService/FirmwareInventory/
+        operator: "=="
+
+  flash_bmc_firmware_flow:
+    - name: monitor_background_copy_erot_bmc_0
+      device_type: compute
+      device_id: compute1
+      operation: monitor_background_copy
+      retry_count: 1
+      parameters:
+        ap_name: ERoT_BMC_0
+        base_uri: /redfish/v1/Chassis/
+        timeout: 600
+      execute_optional_flow: "failure_ac_cycle_flow"
+
+    - name: flash_bmc_firmware
+      device_type: compute
+      device_id: compute1
+      tag: flash_bmc_firmware
+      operation: pldm_fw_update
+      parameters:
+        bundle_path: "${compute_bundles_folder}/${bmc_firmware_bundle_name}"
+        target_uris: ["/redfish/v1/UpdateService/FirmwareInventory/FW_BMC_0"]
+        timeout: 1800
+        force_update: true
+        base_uri: /redfish/v1/UpdateService/update-multipart
+
+    - name: reboot_bmc_apply_update
+      device_type: compute
+      device_id: compute1
+      operation: reboot_bmc
+      wait_between_retries_seconds: 10
+      wait_after_seconds: 180  # 3 minutes
+      parameters:
+        base_uri: /redfish/v1/Managers/BMC_0/Actions/Manager.Reset
+        data: {"ResetType": "GracefulRestart"}
+
+    - name: check_bmc_ready
+      device_type: compute
+      device_id: compute1
+      operation: wait_ap_ready
+      parameters:
+        ap_name: 
+          - FW_BMC_0
+        timeout: 120
+        base_uri: /redfish/v1/UpdateService/FirmwareInventory
+
+steps:
+  # Independent Parallel Flows
+  - name: "Compute Tray Update Independent Flows"
+    independent_flows:
+      # Compute Tray Flow
+      - name: "Compute Tray Update Bianca Flow"
+        steps:
+          # 1. (14 minutes) Update the Customer BMC Firmware:
+          - name: check_bmc_ready
+            device_type: compute
+            device_id: compute1
+            operation: wait_ap_ready
+            parameters:
+              ap_name: 
+                - FW_BMC_0
+              timeout: 120
+              base_uri: /redfish/v1/UpdateService/FirmwareInventory
+
+          - name: check_bmc_version
+            device_type: compute
+            device_id: compute1
+            operation: check_versions
+            parameters:
+              expected_versions:
+                FW_BMC_0: "${bmc_final_version}"
+              base_uri: /redfish/v1/UpdateService/FirmwareInventory/
+              operator: "=="
+            execute_optional_flow: "flash_bmc_firmware_flow"
+
+          # 2. (Less than 1 minute) Check for Background Copy:
+          - name: check_hmc_ready
+            tag: skip_bmc_updates
+            device_type: compute
+            device_id: compute1
+            operation: wait_ap_ready
+            parameters:
+              ap_name: 
+                - HGX_FW_BMC_0
+                - HGX_FW_ERoT_BMC_0
+                - HGX_FW_ERoT_FPGA_0
+                - HGX_FW_ERoT_FPGA_1
+                - HGX_FW_ERoT_CPU_0
+                - HGX_FW_ERoT_CPU_1
+              timeout: 120
+              base_uri: /redfish/v1/UpdateService/FirmwareInventory
+            execute_optional_flow: "failure_ac_cycle_flow"
+
+          - name: check_cpu_erots_ready
+            device_type: compute
+            device_id: compute1
+            operation: wait_ap_ready
+            parameters:
+              ap_name: 
+                - HGX_ERoT_BMC_0
+                - HGX_ERoT_FPGA_0
+                - HGX_ERoT_FPGA_1
+                - HGX_ERoT_CPU_0
+                - HGX_ERoT_CPU_1
+              timeout: 60
+              base_uri: /redfish/v1/Chassis
+            execute_optional_flow: "failure_ac_cycle_flow"
+
+          # 3. (18 minutes) Enable Manual Boot Mode:
+          - name: check_manual_boot_mode_enabled_cpu_0
+            device_type: compute
+            device_id: compute1
+            operation: check_manual_boot_mode
+            wait_between_retries_seconds: 10
+            parameters:
+              base_uri: /redfish/v1/Chassis
+              ap_name: HGX_ERoT_CPU_0
+              check_volatile_dot: false
+              checked_state: true
+            execute_optional_flow: enable_manual_boot_mode_flow
+
+          - name: check_manual_boot_mode_enabled_cpu_1
+            device_type: compute
+            device_id: compute1
+            operation: check_manual_boot_mode
+            wait_between_retries_seconds: 10
+            parameters:
+              base_uri: /redfish/v1/Chassis
+              ap_name: HGX_ERoT_CPU_1
+              check_volatile_dot: false
+              checked_state: true
+            execute_optional_flow: enable_manual_boot_mode_flow
+
+          # 4. (Less than 1 minute): Execute DOT
+          - name: power_on_system
+            device_type: compute
+            device_id: compute1
+            operation: power_on
+            parameters:
+              base_uri: /redfish/v1/Systems/System_0/Actions/ComputerSystem.Reset
+              data: {"ResetType": "On"}
+
+          - name: monitor_background_copy_all_hgx_erots
+            device_type: compute
+            device_id: compute1
+            operation: monitor_background_copy
+            retry_count: 1
+            parameters:
+              ap_name: 
+                - HGX_ERoT_BMC_0
+                - HGX_ERoT_FPGA_0
+                - HGX_ERoT_FPGA_1
+                - HGX_ERoT_CPU_0
+                - HGX_ERoT_CPU_1
+              base_uri: /redfish/v1/Chassis/
+              timeout: 600
+            execute_optional_flow: "failure_ac_cycle_flow"
+
+          - name: optional_dot_cak_install
+            device_type: compute
+            device_id: compute1
+            operation: dot_cak_install
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_0
+              pem_encoded_key: "${pem_encoded_key}"
+              ap_firmware_signature: "${ap_firmware_signature}"
+              base_uri: /redfish/v1/Chassis
+              check_volatile_dot: false
+
+          - name: optional_dot_cak_install
+            device_type: compute
+            device_id: compute1
+            operation: dot_cak_install
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_1
+              pem_encoded_key: "${pem_encoded_key}"
+              ap_firmware_signature: "${ap_firmware_signature}"
+              base_uri: /redfish/v1/Chassis
+              check_volatile_dot: false
+
+          - name: optional_dot_cak_lock
+            device_type: compute
+            device_id: compute1
+            operation: dot_cak_lock
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_0
+              pem_encoded_key: "${pem_encoded_key}"
+              base_uri: /redfish/v1/Chassis
+              check_locking_dot: true
+
+          - name: optional_dot_cak_lock
+            device_type: compute
+            device_id: compute1
+            operation: dot_cak_lock
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_1
+              pem_encoded_key: "${pem_encoded_key}"
+              base_uri: /redfish/v1/Chassis
+              check_locking_dot: true
+
+          # 5. (10 minutes) Flash the HGX NVIDIA Firmware and Customer SBIOS:
+          - name: flash_hmc_firmware_including_sbios
+            device_type: compute
+            device_id: compute1
+            operation: pldm_fw_update
+            parameters:
+              bundle_path: "${compute_bundles_folder}/${no_sbios_hmc_firmware_bundle_name}"
+              target_uris: ["/redfish/v1/Chassis/HGX_Chassis_0"]
+              timeout: 1800
+              force_update: true
+              base_uri: /redfish/v1/UpdateService/update-multipart
+
+          # 6. (4 minutes) Activate the NVIDIA HGX Firmware:
+          - name: set_power_policy_always_off
+            device_type: compute
+            device_id: compute1
+            operation: set_power_policy_always_off
+            wait_between_retries_seconds: 30
+            parameters:
+              base_uri: /redfish/v1/Systems/System_0
+              data: {"PowerRestorePolicy": "AlwaysOff"}
+
+          - name: verify_power_policy_always_off
+            device_type: compute
+            device_id: compute1
+            operation: check_power_policy
+            wait_between_retries_seconds: 30
+            parameters:
+              checked_state: AlwaysOff
+              base_uri: /redfish/v1/Systems/System_0
+
+          - name: disable_manual_boot_mode
+            device_type: compute
+            device_id: compute1
+            operation: set_manual_boot_mode
+            wait_between_retries_seconds: 30
+            parameters:
+              base_uri: /redfish/v1/Chassis
+              ap_name: HGX_ERoT_CPU_0
+              check_volatile_dot: true
+
+          - name: disable_manual_boot_mode
+            device_type: compute
+            device_id: compute1
+            operation: set_manual_boot_mode
+            wait_between_retries_seconds: 30
+            parameters:
+              base_uri: /redfish/v1/Chassis
+              ap_name: HGX_ERoT_CPU_1
+              check_volatile_dot: true
+
+          - name: power_off_system
+            tag: ac_cycle_activate_firmware
+            device_type: compute
+            device_id: compute1
+            operation: power_off
+            parameters:
+              base_uri: /redfish/v1/Systems/System_0/Actions/ComputerSystem.Reset
+              data: {"ResetType": "ForceOff"}
+
+          - name: ac_cycle_system
+            device_type: compute
+            device_id: compute1
+            operation: ac_cycle
+            parameters:
+              base_uri: /redfish/v1/Chassis/BMC_0/Actions/Oem/NvidiaChassis.AuxPowerReset
+              data: {"ResetType": "AuxPowerCycle"}
+            jump_on_failure: ac_cycle_activate_firmware
+            wait_after_seconds: 180 # 3 minutes
+
+          - name: check_hmc_ready
+            device_type: compute
+            device_id: compute1
+            operation: wait_ap_ready
+            parameters:
+              ap_name: 
+                - HGX_FW_BMC_0
+                - HGX_FW_ERoT_BMC_0
+                - HGX_FW_ERoT_FPGA_0
+                - HGX_FW_ERoT_FPGA_1
+                - HGX_FW_ERoT_CPU_0
+                - HGX_FW_ERoT_CPU_1
+              timeout: 120
+              base_uri: /redfish/v1/UpdateService/FirmwareInventory
+            jump_on_failure: ac_cycle_activate_firmware
+
+          - name: check_cpu_erots_ready
+            device_type: compute
+            device_id: compute1
+            operation: wait_ap_ready
+            parameters:
+              ap_name: 
+                - HGX_ERoT_CPU_0
+                - HGX_ERoT_CPU_1
+              timeout: 60
+              base_uri: /redfish/v1/Chassis
+            jump_on_failure: ac_cycle_activate_firmware
+
+          # 7. (7 minutes) Activate the Customer SBIOS Firmware:
+          - name: reset_sbios_command
+            device_type: compute
+            device_id: compute1
+            operation: execute_ipmitool_command
+            wait_between_retries_seconds: 10
+            parameters:
+              command: "chassis bootdev none clear-cmos=yes"
+              use_lanplus: true
+              use_bmc_credentials: true
+              timeout: 120
+
+          - name: optional_dot_cak_install
+            device_type: compute
+            device_id: compute1
+            operation: dot_cak_install
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_0
+              pem_encoded_key: "${pem_encoded_key}"
+              ap_firmware_signature: "${ap_firmware_signature}"
+              base_uri: /redfish/v1/Chassis
+              check_volatile_dot: true
+
+          - name: optional_dot_cak_install
+            device_type: compute
+            device_id: compute1
+            operation: dot_cak_install
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_1
+              pem_encoded_key: "${pem_encoded_key}"
+              ap_firmware_signature: "${ap_firmware_signature}"
+              base_uri: /redfish/v1/Chassis
+              check_volatile_dot: true
+
+          - name: optional_send_boot_ap_command
+            device_type: compute
+            device_id: compute1
+            operation: send_boot_ap
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_0
+              base_uri: /redfish/v1/Chassis/
+              check_volatile_dot: true
+
+          - name: optional_send_boot_ap_command
+            device_type: compute
+            device_id: compute1
+            operation: send_boot_ap
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_1
+              base_uri: /redfish/v1/Chassis/
+              check_volatile_dot: true
+
+          - name: check_cpu_erots_ready_0
+            device_type: compute
+            device_id: compute1
+            operation: check_boot_status_code
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_0
+              base_uri: /redfish/v1/Chassis
+              timeout: 300
+            jump_on_failure: ac_cycle_activate_firmware
+
+          - name: check_cpu_erots_ready_1
+            device_type: compute
+            device_id: compute1
+            operation: check_boot_status_code
+            wait_between_retries_seconds: 10
+            parameters:
+              ap_name: HGX_ERoT_CPU_1
+              base_uri: /redfish/v1/Chassis
+              timeout: 300
+            jump_on_failure: ac_cycle_activate_firmware
+
+          - name: wait_for_boot_to_uefi
+            device_type: compute
+            device_id: compute1
+            operation: wait_for_boot
+            parameters:
+              power_on_uri: /redfish/v1/Systems/System_0/Actions/ComputerSystem.Reset
+              power_on_data: {"ResetType": "On"}
+              system_uri: /redfish/v1/Systems/System_0
+              state:
+                - OSRunning
+                - OSBootStarted
+              timeout: 600
+            execute_on_error: "error_handler_boot_failure_gb300"
+
+          # 8. (Less than 1 minute) Final Version Check:
+          - name: final_hgx_version_validation
+            device_type: compute
+            device_id: compute1
+            operation: check_versions
+            wait_between_retries_seconds: 10
+            parameters:
+              expected_versions:
+                HGX_FW_BMC_0: "${hmc_final_version}"
+                HGX_FW_CPLD_0: "${hmc_cpld_final_version}"
+                HGX_FW_FPGA_0: "${hmc_fpga_final_version}"
+                HGX_FW_FPGA_1: "${hmc_fpga_final_version}"
+                HGX_FW_ERoT_BMC_0: "${hmc_erot_final_version}"
+                HGX_FW_ERoT_CPU_0: "${hmc_cpu_erot_final_version}"
+                HGX_FW_ERoT_CPU_1: "${hmc_cpu_erot_final_version}"
+                HGX_FW_ERoT_FPGA_0: "${hmc_fpga_erot_final_version}"
+                HGX_FW_ERoT_FPGA_1: "${hmc_fpga_erot_final_version}"
+                HGX_FW_GPU_0: "${hmc_gpu_final_version}"
+                HGX_FW_GPU_1: "${hmc_gpu_final_version}"
+                HGX_FW_GPU_2: "${hmc_gpu_final_version}"
+                HGX_FW_GPU_3: "${hmc_gpu_final_version}"
+                HGX_FW_CPU_0: "${cpu_final_version}"
+                HGX_FW_CPU_1: "${cpu_final_version}"
+              base_uri: /redfish/v1/UpdateService/FirmwareInventory/
+              operator: "=="
+            jump_on_failure: "ac_cycle_activate_firmware"
+
+          # Need to set power policy last state now
+          - name: set_power_policy_last_state
+            device_type: compute
+            device_id: compute1
+            operation: set_power_policy_last_state
+            parameters:
+              base_uri: /redfish/v1/Systems/System_0
+              data: {"PowerRestorePolicy": "LastState"}
+
