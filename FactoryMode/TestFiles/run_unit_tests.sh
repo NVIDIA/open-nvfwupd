@@ -29,7 +29,6 @@
 #   --device         Run only device tests
 #   --compute        Run only compute device tests
 #   --switch         Run only switch device tests  
-#   --power_shelf    Run only power shelf device tests
 #   --all            Run all tests (default)
 #   --coverage       Run with coverage report using pytest-cov
 #   --verbose        Enable verbose output
@@ -109,7 +108,6 @@ Test Suite Options:
   --device         Run only device-specific TrayFlowFunctions tests
   --compute        Run only compute device tests
   --switch         Run only switch device tests
-  --power_shelf    Run only power shelf device tests
   --all            Run all tests (default)
 
 Other Options:
@@ -124,7 +122,6 @@ Examples:
   ./run_unit_tests.sh --device --verbose # Run device tests with verbose output
   ./run_unit_tests.sh --compute          # Run only compute device tests
   ./run_unit_tests.sh --switch           # Run only switch device tests
-  ./run_unit_tests.sh --power_shelf      # Run only power shelf tests
   ./run_unit_tests.sh --coverage         # Run all tests with coverage
   ./run_unit_tests.sh --logfile test_results.log  # Run all tests and save output to log
 
@@ -150,10 +147,6 @@ parse_arguments() {
                 ;;
             --switch)
                 TEST_MARKERS="-m switch"
-                shift
-                ;;
-            --power_shelf)
-                TEST_MARKERS="-m power_shelf"
                 shift
                 ;;
             --all)

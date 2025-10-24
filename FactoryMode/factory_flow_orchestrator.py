@@ -17,7 +17,7 @@
 Factory Flow Orchestrator - Unified Multi-Device Factory Automation Framework
 
 This module provides the core orchestration capabilities for automated factory flows
-across compute nodes, network switches, and power shelves. It implements a unified
+across compute nodes, network switches. It implements a unified
 execution engine that handles complex flow control, error recovery, parallel execution,
 and comprehensive progress tracking.
 
@@ -61,7 +61,6 @@ Example:
 Supported Device Types:
     - **Compute Nodes**: BMC operations, firmware updates, boot sequences, SOL logging
     - **Network Switches**: Firmware updates, configuration management, OS operations
-    - **Power Shelves**: PSU management, firmware updates, health monitoring
 
 Flow Types:
     - **FlowStep**: Individual operation on a specific device

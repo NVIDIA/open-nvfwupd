@@ -115,13 +115,6 @@ connection:
       protocol: "ssh"
       # SCP target directory (defaults to home directory if not set)
       scp_target: ""
-  power_shelf:
-    bmc:
-      ip: ""
-      username: ""
-      password: ""
-      port: 443
-      protocol: "https"
 
 # Compute Configuration
 compute:

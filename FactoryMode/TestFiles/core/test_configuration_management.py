@@ -17,7 +17,7 @@
 """
 Unit tests for configuration management classes.
 This module tests configuration loading, validation, and variable resolution
-for ComputeFactoryFlowConfig, SwitchFactoryFlowConfig, and PowerShelfFactoryFlowConfig.
+for ComputeFactoryFlowConfig, SwitchFactoryFlowConfig.
 
 Use the following command to run the tests:
 python3 -m unittest TestFiles.test_configuration_management -v

@@ -35,7 +35,7 @@ The nvfwupd tool in Factory mode follows a structured workflow to ensure reliabl
               │   Steps             │
               └──────────┬──────────┘
                          │
-         ┌───────────────┼───────────────┐
+         ┌───────────────┼
          │               │               
          ▼               ▼               
 ┌─────────────┐  ┌─────────────┐
@@ -143,7 +143,7 @@ Select the appropriate configuration template for your system architecture.
 
 | Template | File Location | System Type | Description |
 |----------|---------------|-------------|-------------|
-| GB300 | `FactoryMode/FactoryFlowYAMLFiles/GB300Flow/GB300_factory_flow_config.yaml` | GB300 Systems | Configuration for GB300 compute nodes, switches, and power shelves |
+| GB300 | `FactoryMode/FactoryFlowYAMLFiles/GB300Flow/GB300_factory_flow_config.yaml` | GB300 Systems | Configuration for GB300 compute nodes and switches |
 
 The GB300 configuration template (`GB300_factory_flow_config.yaml`) provides the base settings for GB300 compute nodes and switches with full HMC/BMC support, DOT security configuration, and both local and remote switch update options.
 
@@ -177,33 +177,16 @@ These are the primary flows used for complete factory updates:
 The following flows are specialized variants of the main flows for specific scenarios:
 
 **Compute Flow Variants:**
-- **`GB300_compute_bianca_hmc_target_flow.yaml`** - HMC-focused variant
-  - **Purpose**: Targets only HMC components (firmware, CPLD, FPGA)
-  - **Modified Variables**: Same as main compute flow but doesnt use redfish aggregration, instead it ssh's into the BMC shell and executes redfish directly to the HMC by internal network static IP.
-  
-- **`GB300_nvbmc_compute_bianca_flow.yaml`** - BMC + HMC variant  
-  - **Purpose**: Updates the Nvidia BMC firmware and ERoT components before flashing HMC firmware.
-  - **Modified Variables**: Requires `bmc_firmware_bundle_name` in addition to HMC bundles.
-  
-- **`GB300_nvbmc_cpld_compute_bianca_flow.yaml`** - BMC + CPLD variant
-  - **Purpose**: Updates the Nvidia BMC firmware and ERoT components before flashing HMC firmware. Has additional steps to flash the NvBMC CPLD firmware the a seperate bundle.
-  - **Modified Variables**: Requires `bmc_cpld_firmware_bundle_name` which only contains BMC CPLD firmware.
   
 - **`GB300_seperate_sbios_compute_bianca_flow.yaml`** - Separate SBIOS variant
   - **Purpose**: Updates SBIOS firmware separately from HMC, but in the same AC Cycle.
   - **Modified Variables**: Uses `cpu_sbios_bundle_name` in addition to HMC nosbios bundle.
 
-**Switch Flow Variants:**
-- **`GB300_remote_nvswitch_flow.yaml`** - Remote switch variant
-  - **Purpose**: Updates switch firmware from a remote server by fetching the firmware images from a remotely hosted server.
-  - **Modified Variables**: Uses `switch_*_bundle_uri` with `scp://` format instead of copying firmware files to the NVOS filesystem.
-  - **Reference**: See [NVOS Installation Management Commands: nvActionFetchPlatformFirmware](https://docs.nvidia.com/networking/display/nvidianvosusermanualforinfinibandswitchesv25024014/installation+management+commands#src-4058403586_InstallationManagementCommands-nvactionfetchplatformfirmware) for details on remote firmware fetching.
-
 ---
 
 ## 4. Pre-Configure System Settings
 
-Use the `config_patcher.py` utility to create a customized runtime configuration based on the GB300 template (`GB300_factory_flow_config.yaml`). This step configures all non-credential settings that are shared across nodes in your factory environment.
+Use the `FactoryMode/Utilities/config_patcher.py` utility to create a customized runtime configuration based on the GB300 template (`GB300_factory_flow_config.yaml`). This step configures all non-credential settings that are shared across nodes in your factory environment.
 
 ### Configuration File Sections
 
@@ -244,7 +227,7 @@ compute:
 
 | Variable | Description | Example Value |
 |----------|-------------|---------------|
-| `nvdebug_path` | Path to nvdebug tool for error log collection | `/builds/nvlink/gitlab/pipelines/sot-integration-testing/lkg/Tools/nvdebug/extracted/nvdebug/nvdebug` |
+| `nvdebug_path` | Path to nvdebug tool for error log collection | `/local/path/to/nvdebug/tool/binary` |
 | `output_mode` | Display mode for orchestrator output | `all`, `gui`, `compute1`, `none` |
 
 #### Main Flow Files and Their Required Variables
@@ -253,7 +236,7 @@ compute:
 
 | Variable | Purpose | Example Value |
 |----------|---------|---------------|
-| `compute_bundles_folder` | Path to all compute firmware bundles | `/builds/nvlink/gitlab/pipelines/sot-integration-testing/lkg` |
+| `compute_bundles_folder` | Path to all compute firmware bundles | `/path/to/folder/containing/all/fwpkg-bundles` |
 | `no_sbios_hmc_firmware_bundle_name` | HMC bundle containing customer SBIOS | `Compute Tray/Compute Tray Firmware/HMC/250719.1.1/nvfw_GB300-P4059-0301_0041_250719.1.1_custom_prod-signed.fwpkg` |
 | `bmc_firmware_bundle_name` | BMC firmware bundle (if updating BMC) | `Compute Tray/Compute Tray Firmware/BMC/250719.1.0/nvfw_GB300-P4058-0301_0042_250719.1.0_custom_prod-signed.fwpkg` |
 | `pem_encoded_key` | Customer DOT public key | `-----BEGIN PUBLIC KEY-----...` |
@@ -265,7 +248,7 @@ compute:
 
 | Variable | Purpose | Example Value |
 |----------|---------|---------------|
-| `compute_bundles_folder` | Path to compute firmware bundles | `/builds/nvlink/gitlab/pipelines/sot-integration-testing/lkg` |
+| `compute_bundles_folder` | Path to compute firmware bundles | `/path/to/folder/containing/all/fwpkg-bundles` |
 | `bluefield_3_inband_image_name` | BlueField-3 NIC firmware image | `Compute Tray/Compute Tray Firmware/BF3_NIC/32.45.1600/fw-BlueField-3-rel-32_45_1600-900-9D3B6-00CN-P_Ax-NVME-20.4.1-UEFI-21.4.13-UEFI-22.4.14-UEFI-14.38.16-FlexBoot-3.7.500.signed.bin` |
 | `connect_x8_inband_image_name` | ConnectX-8 NIC firmware image | `Compute Tray/Compute Tray Firmware/CX/40.45.3048/fw-ConnectX8-rel-40_45_3048-900-9X86E-00CX-SP0_Ax-UEFI-14.38.16-FlexBoot-3.7.500.signed.bin` |
 | `mft_bundle_name` | Mellanox Firmware Tools package | `Tools/MFT/4.32.0-6017/mft-4.32.0-6017-linux-arm64-deb` |
@@ -274,7 +257,7 @@ compute:
 
 | Variable | Purpose | Example Value |
 |----------|---------|---------------|
-| `nvswitch_bundles_folder` | Path to switch firmware bundles | `/builds/nvlink/gitlab/pipelines/sot-integration-testing/lkg` |
+| `nvswitch_bundles_folder` | Path to switch firmware bundles | `/path/to/folder/containing/all/fwpkg-bundles` |
 | `switch_bmc_bundle_name` | Switch BMC firmware bundle | `Switch Tray/Switch Tray Firmware/BMC/250719.1.0/nvfw_GB300-Switch_BMC_250719.1.0.fwpkg` |
 | `switch_cpld_file_name` | Switch CPLD file (extracted .bin) | `Switch Tray/Switch Tray Firmware/CPLD/250719.1.0/switch_cpld_250719.1.0.bin` |
 | `switch_bios_bundle_name` | Switch BIOS firmware bundle | `Switch Tray/Switch Tray Firmware/BIOS/250719.1.0/GB300_Switch_BIOS_250719.1.0.fwpkg` |
@@ -287,11 +270,7 @@ These specialized flows modify or add to the main flow requirements:
 
 | Auxiliary Flow | Based On | Modified/Additional Variables | Purpose |
 |----------------|----------|------------------------------|---------|
-| `GB300_compute_bianca_hmc_target_flow.yaml` | Compute main | Same variables, HMC focus only | Removes need for BMC Redfish aggregation - executes Redfish commands directly to HMC via BMC SSH and curl |
-| `GB300_nvbmc_compute_bianca_flow.yaml` | Compute main | **Adds**: `bmc_firmware_bundle_name` | Updates BMC before HMC flash |
-| `GB300_nvbmc_cpld_compute_bianca_flow.yaml` | Compute main | **Adds**: `bmc_cpld_firmware_bundle_name` | Updates BMC CPLD before HMC flash |
 | `GB300_seperate_sbios_compute_bianca_flow.yaml` | Compute main | **Adds**: `cpu_sbios_bundle_name` | Separate SBIOS in same AC cycle |
-| `GB300_remote_nvswitch_flow.yaml` | Switch main | **Replaces** bundle names with `*_bundle_uri` (scp://) | Switch firmware hosted remotely and fetched over network using nvswitch "nv action fetch" URIs |
 
 ### Using config_patcher.py
 
@@ -313,9 +292,9 @@ python FactoryMode/Utilities/config_patcher.py --patch-file <patch_file.yaml> <o
 # Create GB300 compute configuration from template
 python FactoryMode/Utilities/config_patcher.py GB300_runtime_config.yaml \
   --source FactoryMode/FactoryFlowYAMLFiles/GB300Flow/GB300_factory_flow_config.yaml \
-  --set "variables.nvdebug_path=/builds/nvlink/gitlab/pipelines/sot-integration-testing/lkg/Tools/nvdebug/extracted/nvdebug/nvdebug" \
+  --set "variables.nvdebug_path=/local/path/to/nvdebug/tool/binary" \
   --set "variables.output_mode=all" \
-  --set "variables.compute_bundles_folder=/builds/nvlink/gitlab/pipelines/sot-integration-testing/lkg" \
+  --set "variables.compute_bundles_folder=/path/to/folder/containing/all/fwpkg-bundles" \
   --set "variables.no_sbios_hmc_firmware_bundle_name=Compute Tray/Compute Tray Firmware/HMC/250719.1.1/nvfw_GB300-P4059-0301_0041_250719.1.1_custom_prod-signed.fwpkg" \
   --set "compute.DOT=NoDOT"
 ```
@@ -325,9 +304,9 @@ python FactoryMode/Utilities/config_patcher.py GB300_runtime_config.yaml \
 # Create GB300 switch configuration from template
 python FactoryMode/Utilities/config_patcher.py GB300_runtime_config.yaml \
   --source FactoryMode/FactoryFlowYAMLFiles/GB300Flow/GB300_factory_flow_config.yaml \
-  --set "variables.nvdebug_path=/builds/nvlink/gitlab/pipelines/sot-integration-testing/lkg/Tools/nvdebug/extracted/nvdebug/nvdebug" \
+  --set "variables.nvdebug_path=/local/path/to/nvdebug/tool/binary" \
   --set "variables.output_mode=all" \
-  --set "variables.nvswitch_bundles_folder=/builds/nvlink/gitlab/pipelines/sot-integration-testing/lkg" \
+  --set "variables.nvswitch_bundles_folder=/path/to/folder/containing/all/fwpkg-bundles" \
   --set "variables.switch_bmc_bundle_name=Switch Tray/Switch Tray Firmware/BMC/250719.1.0/nvfw_GB300-Switch_BMC_250719.1.0.fwpkg" \
   --set "variables.switch_cpld_file_name=Switch Tray/Switch Tray Firmware/CPLD/250719.1.0/switch_cpld_250719.1.0.bin"
 ```
@@ -356,7 +335,7 @@ variables:
   
   # Tools
   mft_bundle_name: "Tools/MFT/4.32.0-6017/mft-4.32.0-6017-linux-arm64-deb"
-  nvdebug_path: "Tools/nvdebug/extracted/nvdebug/nvdebug"
+  nvdebug_path: "/local/path/to/nvdebug/tool/binary"
   
   # Expected firmware versions for validation (GB300-25.07-7 release)
   bmc_final_version: "GB300-25.07-7"
@@ -403,7 +382,7 @@ Then add your site-specific settings (paths and credentials):
 ```bash
 # Add site-specific paths and credentials
 python FactoryMode/Utilities/config_patcher.py GB300_runtime_config.yaml \
-  --set "variables.compute_bundles_folder=/builds/nvlink/gitlab/pipelines/sot-integration-testing/lkg" \
+  --set "variables.compute_bundles_folder=/path/to/folder/containing/all/fwpkg-bundles" \
   --set "connection.compute.bmc.ip=YOUR_COMPUTE_BMC_IP" \
   --set "connection.compute.bmc.username=YOUR_BMC_USERNAME" \
   --set "connection.compute.bmc.password=YOUR_BMC_PASSWORD" \

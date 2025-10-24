@@ -29,8 +29,8 @@ The Nvfwupd Flow Framework provides a standardized, scalable way to manage firmw
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd nvfwupd
+git clone https://github.com/NVIDIA/open-nvfwupd.git
+cd open-nvfwupd
 ```
 
 2. Install dependencies:
@@ -46,6 +46,8 @@ Required dependencies:
 - urllib3 >= 1.26.15
 - rich >= 14.0.0
 - ipmitool >= 1.8.12
+- scp >= 0.14.5
+- tabulate >= 0.9.0
 
 ## Architecture
 
@@ -139,7 +141,6 @@ The framework includes device-specific flow functions for each supported device 
 
 - **Compute Operations**: BMC management, firmware updates, DOT security, power control
 - **Switch Operations**: System configuration, SSH management, firmware validation
-- **Power Shelf Operations**: PSU management, Redfish-based updates, health monitoring
 
 Detailed operation documentation is available in the docstrings of each device flow class in the `TrayFlowFunctions` directory.
 
@@ -243,13 +244,6 @@ connection:
       password: "switch_password"
       port: 22
       protocol: "ssh"
-  power_shelf:
-    bmc:
-      ip: "192.168.1.102"
-      username: "admin"
-      password: "shelf_password"
-      port: 443
-      protocol: "https"
 ```
 
 #### Device-Specific Configuration
@@ -353,7 +347,7 @@ Each flow step supports the following fields:
 #### Required Fields
 | Field | Type | Description |
 |-------|------|-------------|
-| `device_type` | enum | Device category: `compute`, `switch`, or `power_shelf` |
+| `device_type` | enum | Device category: `compute` or `switch` |
 | `device_id` | string | Logical device identifier (must match config connection keys) |
 | `operation` | string | Method name to call on the device flow class |
 | `parameters` | dict | Operation-specific parameters passed to the method |

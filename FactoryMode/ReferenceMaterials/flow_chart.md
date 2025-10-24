@@ -101,7 +101,7 @@ flowchart TD
 - Track progress and timing
 
 ### 4. **Step Execution**
-- Execute operations on target devices (compute, switch, power shelf)
+- Execute operations on target devices (compute, switch)
 - Retry on failure with configurable retry count
 - Execute steps sequentially or in parallel as defined
 
@@ -139,7 +139,6 @@ flowchart TD
 ### **Device Types**
 - **Compute**: Server/node operations via BMC
 - **Switch**: Network switch operations
-- **Power Shelf**: Power supply unit management
 
 ### **Recovery Mechanisms**
 1. **Retry**: Automatically retry failed operations (configurable count)
