@@ -111,7 +111,7 @@ Clone the open-source NVIDIA nvfwupd repository from GitHub.
 git clone https://github.com/NVIDIA/open-nvfwupd.git
 
 # Navigate to the nvfwupd directory
-cd open-nvfwupd/nvfwupd/
+cd open-nvfwupd/
 ```
 
 Expected directory structure:
