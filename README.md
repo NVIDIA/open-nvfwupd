@@ -15,6 +15,7 @@ open-nvfwupd is a tool designed for updating firmware components using OOB metho
     - **Monitored Update** : Default behavior monitors a firmware update task to completion.
     - **Background Update** : Optional update task launch and manual monitoring.
     - **Parallel Update** : Launch updates on multiple systems at once using the yaml configuration file.
+    - **Factory Mode** : Launch step by step update flow for flashing firmware in factory.
 
 ## Prerequisites
 

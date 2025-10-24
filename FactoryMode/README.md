@@ -49,7 +49,7 @@ Required dependencies:
 - scp >= 0.14.5
 - tabulate >= 0.9.0
 
-## Factory Mode Usage
+## Factory Mode Usage and setup
 
 It is required to setup some configurations before launching the nvfwupd tool in Factory Update mode. This has been explained step by step in the [Nvfwupd Factory Mode Quick Start Guide](Nvfwupd%20Factory%20Mode%20Quick%20Start%20Guide.md)
 
@@ -172,6 +172,9 @@ Complete execution history is saved to `flow_progress.json` with hierarchical st
   }
 }
 ```
+## Architecture and Design
+
+Refer to `FactoryMode/ReferenceMaterials/DesignDetails.md` 
 
 ## Contributing
 
