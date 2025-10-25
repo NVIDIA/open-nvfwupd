@@ -280,7 +280,7 @@ steps:
   - name: "Compute Tray Update Independent Flows"
     independent_flows:
       # Compute Tray Flow
-      - name: "Compute Tray Update Bianca Flow"
+      - name: "Compute Tray Update Flow"
         steps:
           # 1. (14 minutes) Update the Customer BMC Firmware:
           - name: check_bmc_ready
@@ -433,25 +433,13 @@ steps:
               base_uri: /redfish/v1/Chassis
               check_locking_dot: true
 
-          # 5. (16 minutes) Flash the HGX NVIDIA Firmware and Customer SBIOS seperately:
-          - name: flash_no_sbios_hmc_firmware
+          # 5. (10 minutes) Flash the HGX NVIDIA Firmware and Customer SBIOS:
+          - name: flash_hmc_firmware_including_sbios
             device_type: compute
             device_id: compute1
             operation: pldm_fw_update
             parameters:
               bundle_path: "${compute_bundles_folder}/${no_sbios_hmc_firmware_bundle_name}"
-              target_uris: ["/redfish/v1/Chassis/HGX_Chassis_0"]
-              timeout: 1800
-              force_update: true
-              base_uri: /redfish/v1/UpdateService/update-multipart
-
-          # If customer has a CPU SBIOS bundle, add this step
-          - name: flash_cpu_sbios_bundle
-            device_type: compute
-            device_id: compute1
-            operation: pldm_fw_update
-            parameters:
-              bundle_path: "${compute_bundles_folder}/${cpu_sbios_bundle_name}"
               target_uris: ["/redfish/v1/Chassis/HGX_Chassis_0"]
               timeout: 1800
               force_update: true

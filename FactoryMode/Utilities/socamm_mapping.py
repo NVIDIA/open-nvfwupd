@@ -2,7 +2,7 @@ import argparse
 import re
 
 
-def extract_bit_mask_gb300_bianca_socamm(log_file, socket):
+def extract_bit_mask_gb300_compute_socamm(log_file, socket):
     pattern = re.compile(r"SDRAM training failed for channels \(failed channels mask (0x[0-9A-Fa-f]+)\)")
 
     channel_map = {
@@ -50,12 +50,12 @@ if __name__ == "__main__":
             "socket", type=str, choices=["socket_0", "socket_1"], help="Socket identifier (socket_0 or socket_1)"
         )
         parser.add_argument(
-            "--product", type=str, nargs="?", default=None, help="Optional: Support gb300 Bianca socamm"
+            "--product", type=str, nargs="?", default=None, help="Optional: Support gb300 compute socamm"
         )
         args = parser.parse_args()
         print(f"Checking SOCAMM mapping for {args.product}")
         if args.product == "gb300":
-            extract_bit_mask_gb300_bianca_socamm(args.log_file_path, args.socket)
+            extract_bit_mask_gb300_compute_socamm(args.log_file_path, args.socket)
         else:
             print(f"No socamm mapping for {args.product}")
     except Exception as e:

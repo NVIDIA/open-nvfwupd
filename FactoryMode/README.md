@@ -70,7 +70,7 @@ Factory Mode is built on a unified execution engine that processes all device ty
 
 ```bash
 # Execute factory flow with specific config and flow files
-python nvfwupd.py factory_mode -c GB300_factory_flow_config.yaml -f GB300_compute_bianca_flow.yaml
+python nvfwupd.py factory_mode -c GB300_factory_flow_config.yaml -f GB300_compute_flow.yaml
 
 # Execute with custom logging directory
 python nvfwupd.py factory_mode -c config.yaml -f flow.yaml -l /custom/log/directory
@@ -115,7 +115,7 @@ Complete execution history is saved to `flow_progress.json` with hierarchical st
 {
   "timestamp": "2025-01-29T18:45:22.123456",
   "flows": {
-    "GB300 Compute Bianca Flow": {
+    "GB300 Compute Flow": {
       "status": "Completed",
       "current_step": "All Steps Done",
       "completed_steps": 25,

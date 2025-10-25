@@ -275,7 +275,7 @@ variables:
 
   # Tool paths
   nvdebug_path: "<path_to_nvdebug>"
-  mft_bundle_name: "mft-4.32.0-6017-linux-arm64-deb"
+  mft_bundle_name: "<path_to_mft_bundle>"
 
   # Switch firmware locations
   switch_bmc_bundle_uri: "scp://<username>:<password>@<ip>/<path>/<switch_bmc_package>"

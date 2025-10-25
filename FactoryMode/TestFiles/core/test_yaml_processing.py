@@ -1099,7 +1099,7 @@ class TestVariableExpansion(unittest.TestCase):
                     "device_id": "${test_device_id}",
                     "operation": "variable_test_operation",
                     "parameters": {
-                        # Patterns from GB300_compute_bianca_flow.yaml
+                        # Patterns from GB300_compute_flow.yaml
                         "bmc_bundle_path": "${base_path}/bundles/bmc_firmware.fwpkg",  # line 252 pattern
                         "hmc_bundle_path": "${base_path}/bundles/no_sbios_hmc_firmware.fwpkg",  # line 178, 442 patterns
                         # Test when compute_bundles_folder="fw" and bundle names have paths

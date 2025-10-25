@@ -162,7 +162,7 @@ Select the appropriate flow file based on the operation you want to perform.
 These are the primary flows used for complete factory updates:
 
 **GB300 Complete Compute Update**
-- **`GB300_compute_bianca_flow.yaml`** - Complete compute tray firmware update (BMC, HMC, SBIOS, DOT security)
+- **`GB300_compute_flow.yaml`** - Complete compute tray firmware update (BMC, HMC, SBIOS, DOT security)
   - **Prerequisite:** The `_nosbios` HMC firmware package must be repacked to include customer SBIOS.
 
 - **`GB300_compute_NIC_flow.yaml`** - Network interface updates (BlueField-3, ConnectX-8)
@@ -178,7 +178,7 @@ The following flows are specialized variants of the main flows for specific scen
 
 **Compute Flow Variants:**
   
-- **`GB300_seperate_sbios_compute_bianca_flow.yaml`** - Separate SBIOS variant
+- **`GB300_seperate_sbios_compute_flow.yaml`** - Separate SBIOS variant
   - **Purpose**: Updates SBIOS firmware separately from HMC, but in the same AC Cycle.
   - **Modified Variables**: Uses `cpu_sbios_bundle_name` in addition to HMC nosbios bundle.
 
@@ -232,7 +232,7 @@ compute:
 
 #### Main Flow Files and Their Required Variables
 
-**1. GB300_compute_bianca_flow.yaml - Complete Compute Update**
+**1. GB300_compute_flow.yaml - Complete Compute Update**
 
 | Variable | Purpose | Example Value |
 |----------|---------|---------------|
@@ -270,7 +270,7 @@ These specialized flows modify or add to the main flow requirements:
 
 | Auxiliary Flow | Based On | Modified/Additional Variables | Purpose |
 |----------------|----------|------------------------------|---------|
-| `GB300_seperate_sbios_compute_bianca_flow.yaml` | Compute main | **Adds**: `cpu_sbios_bundle_name` | Separate SBIOS in same AC cycle |
+| `GB300_seperate_sbios_compute_flow.yaml` | Compute main | **Adds**: `cpu_sbios_bundle_name` | Separate SBIOS in same AC cycle |
 
 ### Using config_patcher.py
 
@@ -466,7 +466,7 @@ Execute the factory flow using the nvfwupd tool in Factory mode with your config
 ```bash
 python nvfwupd.py factory_mode \
   -c GB300_runtime_config.yaml \
-  -f FactoryMode/FactoryFlowYAMLFiles/GB300Flow/GB300_compute_bianca_flow.yaml \
+  -f FactoryMode/FactoryFlowYAMLFiles/GB300Flow/GB300_compute_flow.yaml \
   -l /logs/firmware_update
 ```
 
@@ -478,7 +478,7 @@ python nvfwupd.py factory_mode \
 ```bash
 python nvfwupd.py factory_mode \
   -c GB300_runtime_config.yaml \
-  -f FactoryMode/FactoryFlowYAMLFiles/GB300Flow/GB300_compute_bianca_flow.yaml \
+  -f FactoryMode/FactoryFlowYAMLFiles/GB300Flow/GB300_compute_flow.yaml \
   -l /logs/gb300_compute_main_update
 ```
 
@@ -503,7 +503,7 @@ python nvfwupd.py factory_mode \
 | Parameter | Short | Description | Required | Example |
 |-----------|-------|-------------|----------|---------|
 | `--config_path` | `-c` | Path to configuration YAML file | Yes | `GB300_runtime_config.yaml` |
-| `--flow_path` | `-f` | Path to flow YAML file | Yes | `GB300_compute_bianca_flow.yaml` |
+| `--flow_path` | `-f` | Path to flow YAML file | Yes | `GB300_compute_flow.yaml` |
 | `--log_dir` | `-l` | Log directory path | Yes | `/logs/firmware_update` |
 
 ### Output Modes
@@ -547,7 +547,7 @@ python FactoryMode/Utilities/flow_status_checker.py /logs/gb300_compute_update
 # Flow Status Check Results
 # ============================================================
 # 
-# Flow: GB300 Compute Bianca Flow
+# Flow: GB300 Compute Flow
 # Status: Completed Successfully
 # Completed Steps: 25/25
 # Total Runtime: 2847.5 seconds (47.5 minutes)
@@ -664,7 +664,7 @@ When you specify a log directory with the `-l` flag, the following structure is 
 
 **Example entries:**
 ```
-2025-01-15 10:30:15 INFO: Loading flow from GB300_compute_bianca_flow.yaml
+2025-01-15 10:30:15 INFO: Loading flow from GB300_compute_flow.yaml
 2025-01-15 10:30:16 INFO: Executing step: check_bmc_version
 2025-01-15 10:30:18 INFO: Step completed successfully, jumping to: skip_bmc_updates
 2025-01-15 10:30:20 WARNING: Step failed, executing optional flow: bmc_recovery_flow
@@ -695,7 +695,7 @@ Real-time JSON tracking of flow execution:
 {
   "timestamp": "2025-01-15T10:30:15.123456",
   "flows": {
-    "GB300 Compute Bianca Flow": {
+    "GB300 Compute Flow": {
       "status": "In Progress",
       "current_step": "flash_hmc_firmware_including_sbios",
       "completed_steps": 12,
