@@ -48,6 +48,11 @@ from nvfwupd.input_params import TaskId
 from nvfwupd.utils import Util
 from nvfwupd.logger import Logger
 
+from rich.console import Console
+from rich.panel import Panel
+from FactoryMode.factory_flow_orchestrator import FactoryFlowOrchestrator
+from FactoryMode.output_manager import setup_logging as setup_module_logging, get_log_directory
+from FactoryMode.output_manager import set_log_directory
 
 class FwUpdCmd:
     """Base class for firmware update command
@@ -2053,3 +2058,54 @@ class FwUpdCmdShowUpdateProgress(FwUpdCmd):
             )
 
         Util.bail_nvfwupd(error_status, "", print_json=json_output)
+
+class FwUpdCmdFactoryMode(FwUpdCmd):
+
+    def run_command(self):
+
+        # Parse command line arguments
+        global_args, cmd_args = self.validate_cmd()
+
+        # Set custom log directory if provided
+        if hasattr(cmd_args, 'log_dir') and cmd_args.log_dir:
+            set_log_directory(cmd_args.log_dir)
+
+        # Setup console
+        console = Console()
+        try:
+            # Create orchestrator first to check output mode
+            orchestrator = FactoryFlowOrchestrator(cmd_args.config_path)
+
+            # Only print panels if NOT in NONE or LOG mode
+            from FactoryMode.flow_types import OutputMode
+            show_panels = orchestrator.output_mode not in (OutputMode.NONE, OutputMode.LOG)
+
+            if show_panels:
+                console.print(Panel.fit("Initializing Factory Flow Orchestrator", style="bold cyan"))
+                console.print(Panel.fit(f"Loading flow from: {cmd_args.flow_path}", style="bold yellow"))
+
+            flow = orchestrator.load_flow_from_yaml(cmd_args.flow_path)
+
+            if show_panels:
+                console.print(Panel.fit("Starting flow execution", style="bold green"))
+                log_dir = get_log_directory()
+                console.print(Panel.fit(f"Log files are available in: {log_dir}", style="bold blue"))
+
+            success = orchestrator.execute_flow(flow)
+
+            # Print final status
+            if show_panels:
+                if success:
+                    console.print(Panel.fit("Flow execution completed successfully!", style="bold green"))
+                else:
+                    console.print(Panel.fit("Flow execution failed!", style="bold red"))
+
+        except Exception as e:
+            console.print(Panel.fit(f"Error: {str(e)}", style="bold red"))
+            return 1
+        finally:
+            # Clean up connections
+            if 'orchestrator' in locals():
+                orchestrator.close()
+
+        return 0 if success else 1

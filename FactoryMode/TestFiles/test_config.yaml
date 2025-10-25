@@ -1,0 +1,113 @@
+# Test configuration file for unit tests
+# This file provides comprehensive configuration for testing the factory flow orchestrator
+
+# Global settings
+settings:
+  default_retry_count: 2
+  default_wait_after_seconds: 1
+  execute_on_error: "default_error_handler"
+  ssh_timeout: 30
+  redfish_timeout: 60
+
+# Output and logging configuration
+output_mode: "text"  # For testing - disables rich UI
+logging:
+  level: "INFO"
+  file_logging: false
+
+# Variables for testing
+variables:
+  test_device_id: "test_device"
+  test_bundle_path: "/path/to/test/bundle"
+  test_firmware_path: "/path/to/test/firmware"
+  nvdebug_path: "mock/path/to/nvdebug"
+  flint_path: "mock/path/to/flint"
+  base_path: "/opt/tools"
+  switch_firmware_url: "https://firmware.nvidia.com/switch/"
+  power_shelf_firmware_path: "/firmware/power_shelf/"
+  # Test null/empty variable handling
+  optional_config_value: null
+  empty_string_value: ""
+
+# Tool paths
+tools:
+  nvdebug_path: "mock/path/to/nvdebug"
+  flint_path: "mock/path/to/flint"
+  ipmitool_path: "mock/path/to/ipmitool"
+  nvflash_path: "mock/path/to/nvflash"
+
+# HMC configuration
+hmc:
+  tunnel_enabled: true
+  default_ip: "172.31.13.251"
+  redfish_port: 443
+
+# Advanced features
+features:
+  sol_logging: true
+  progress_tracking: true
+  rich_ui: false  # Disable for testing
+  concurrent_execution: true
+  error_collection: true
+
+# Connection configurations
+connection:
+  compute:
+    bmc:
+      ip: "192.168.1.100"
+      username: "admin"
+      password: "password"
+      port: 443
+    os:
+      ip: "192.168.1.100"
+      username: "root"
+      password: "root_password"
+      port: 22
+  switch:
+    ip: "192.168.1.101"
+    username: "admin"
+    password: "admin_password"
+    port: 22
+  power_shelf:
+    ip: "192.168.1.102"
+    username: "admin"
+    password: "shelf_password"
+    port: 443
+
+# Device-specific configurations
+compute:
+  DOT: "Volatile"
+  platform: "GB200"
+  baseboard: "GB200 NVL"
+
+switch:
+  platform: "NVSwitch"
+  firmware_version: "1.0.0"
+
+power_shelf:
+  platform: "PowerShelf"
+  psu_count: 4
+  redfish_endpoints:
+    - "/redfish/v1/Chassis/PMC"
+    - "/redfish/v1/PowerEquipment/PowerShelves/1"
+
+# Legacy device configurations (for backward compatibility)
+devices:
+  compute:
+    compute1:
+      host: "192.168.1.100"
+      username: "admin"
+      password: "password"
+      port: 22
+  switch:
+    switch1:
+      host: "192.168.1.101"
+      username: "admin"
+      password: "password"
+      port: 22
+  power_shelf:
+    ps1:
+      host: "192.168.1.102"
+      username: "admin"
+      password: "password"
+      port: 22 

@@ -21,8 +21,14 @@ REST APIS
 import os
 import sys
 import signal
+import logging
+import argparse
 from nvfwupd.cli_schema import CLISchema
 
+from rich.console import Console
+from rich.panel import Panel
+from FactoryMode.factory_flow_orchestrator import FactoryFlowOrchestrator
+from FactoryMode.output_manager import setup_logging as setup_module_logging, get_log_directory
 # File uses instances of all classes when returned by called functions
 # pylint: disable=wildcard-import
 # pylint: disable=unused-wildcard-import
@@ -112,7 +118,7 @@ def instantiate_cmd(schema, exec_name, global_options, cmd_args):
 
     cmd_instance = globals()[class_name](schema, exec_name, arg_dict)
 
-    cmd_instance.run_command()
+    return cmd_instance.run_command()
 
 
 def main():
@@ -123,9 +129,11 @@ def main():
     path = os.path.dirname(os.path.abspath(__file__))
     sys.path.insert(0, path)
 
-    resource = Util.get_abs_path("cli_schema.yaml")
+    script_path = os.path.realpath(__file__)
+    script_directory = os.path.dirname(script_path)
+    schema_path = script_directory + "/cli_schema.yaml"
     schema = CLISchema()
-    schema.load_schema(resource)
+    schema.load_schema(schema_path)
 
     #
     # Decompose command line arguments into global options and command options
@@ -146,9 +154,10 @@ def main():
         FwUpdCmdToolVersion.print_version()
         sys.exit(0)
 
-    instantiate_cmd(schema, exec_name, global_options, cmd_args)
+    return instantiate_cmd(schema, exec_name, global_options, cmd_args)
 
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, keyboard_int_handler)
-    main()
+    return_code = main()
+    sys.exit(return_code)

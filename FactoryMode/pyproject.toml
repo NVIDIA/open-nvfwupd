@@ -1,0 +1,185 @@
+[tool.black]
+line-length = 120
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+# A regex preceded by ^/ will apply only to files and directories
+# in the root of the project.
+^/build/
+'''
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"test_*.py" = ["F841"]  # Allow unused variables in tests
+
+[tool.ruff.lint.isort]
+known-first-party = ["FactoryMode", "nvfwupd"]
+known-third-party = ["pytest", "yaml", "rich", "paramiko", "requests", "urllib3", "tabulate"]
+
+[tool.pytest.ini_options]
+# Configuration for pytest
+testpaths = ["."]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Add the parent directory to the Python path
+pythonpath = ["../../.."]
+
+# Markers for test categorization
+markers = [
+    "core: Core orchestrator framework tests",
+    "device: Device-specific TrayFlowFunctions tests",
+    "compute: Compute device tests",
+    "switch: Switch device tests",
+    "power_shelf: Power shelf device tests",
+]
+
+# Warning configuration
+filterwarnings = [
+    # Treat all warnings as errors to fail the pipeline on any warning
+    "error",
+    # Optionally, you can ignore specific warnings if absolutely necessary:
+    # "ignore::DeprecationWarning:some_module",
+    # But by default, we want to catch ALL warnings
+]
+
+# Output options
+addopts = [
+    # Show summary of warnings at the end
+    "-ra",
+    # Show local variables in tracebacks
+    "--showlocals",
+    # Show percentage progress
+    "--tb=short",
+    # Strict markers - fail on unknown markers
+    "--strict-markers",
+]
+
+[tool.pylint]
+# Pylint configuration
+# Migrated from TestFiles/.pylintrc for consistency
+
+[tool.pylint.main]
+# Use multiple processes to speed up Pylint
+jobs = 0
+# Python code to execute, usually for sys.path manipulation
+init-hook = 'import sys; sys.path.append(".")'
+
+[tool.pylint."messages control"]
+# Disable specific warnings that are not critical for factory environment
+disable = [
+    "C0103",  # invalid-name - allow short variable names
+    "R0913",  # too-many-arguments - common in factory automation
+    "C0302",  # too-many-lines - allow for large files
+    "W1203",  # logging-fstring-interpolation - allow for logging
+    "W0718",  # broad-exception-caught - allow for broad exception catching
+    "R1702",  # too-many-nested-blocks - allow for nested blocks
+    "R0911",  # too-many-return-statements - allow for multiple return statements
+    "R0912",  # too-many-branches - allow for multiple branches
+    "C0301",  # line-too-long - covered by black
+    "R0915",  # too-many-statements - complex functions in factory automation
+    "R0914",  # too-many-locals - complex logic requires many variables
+    "R1732",  # consider-using-with - explicit resource management preferred
+    "R0904",  # too-many-public-methods - factory classes need many methods
+    "R0902",  # too-many-instance-attributes - factory classes manage many states
+    "R0903",  # too-few-public-methods - some classes are simple data containers
+    "C0411",  # wrong-import-order - handled by ruff's import sorting
+]
+
+[tool.pylint.format]
+# Maximum number of characters on a single line (match black/ruff)
+max-line-length = 120
+
+[tool.pylint.design]
+# Maximum number of arguments for function / method
+max-args = 10
+# Maximum number of locals for function / method body
+max-locals = 20
+# Maximum number of return / yield for function / method body
+max-returns = 6
+# Maximum number of branch for function / method body
+max-branches = 15
+# Maximum number of statements in function / method body
+max-statements = 50
+# Maximum number of instance attributes for a class
+max-attributes = 20
+
+[tool.pylint.typecheck]
+# List of module names for which member attributes should not be checked
+ignored-modules = ["paramiko", "requests", "yaml", "rich"]
+
+[tool.pylint.variables]
+# Allow unused variables when underscore-prefixed
+dummy-variables-rgx = "_.*"
+
+[tool.pylint.basic]
+# Good variable names which should always be accepted
+good-names = ["i", "j", "k", "ex", "Run", "_", "ip", "id", "ok"]
+
+[tool.mypy]
+# Mypy configuration for static type checking
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Start permissive, can make stricter later
+check_untyped_defs = true
+ignore_missing_imports = true
+follow_imports = "normal"
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+# Per-module options
+[[tool.mypy.overrides]]
+module = "FactoryMode.TestFiles.*"
+# Be more lenient with test files
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+module = [
+    "paramiko.*",
+    "requests.*",
+    "yaml.*",
+    "rich.*",
+    "tabulate.*",
+    "scp.*",
+    "urllib3.*",
+]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["FactoryMode"]
+omit = [
+  "FactoryMode/TestFiles/*",
+  "*/FactoryMode/TestFiles/*"
+]
+
+[tool.coverage.report]
+omit = [
+  "FactoryMode/TestFiles/*",
+  "*/FactoryMode/TestFiles/*"
+] 

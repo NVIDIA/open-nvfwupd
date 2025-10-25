@@ -1,0 +1,113 @@
+# Test Flow with Optional Flows
+# This flow demonstrates how to define and use optional flows as recovery mechanisms in the factory flow framework
+
+name: "Test Flow with Optional Flows"
+description: "Demonstrates the use of optional flows for recovery operations"
+
+# Global settings
+settings:
+  default_retry_count: 2
+  default_wait_after_seconds: 1
+  execute_on_error: "default_error_handler"
+
+# Define optional flows
+optional_flows:
+  # Optional flow for BMC recovery
+  bmc_recovery_flow:
+    - name: "Reset BMC"
+      device_type: compute
+      device_id: compute1
+      operation: reboot_bmc
+      parameters: {}
+      retry_count: 2
+      wait_after_seconds: 10
+
+    - name: "Wait for BMC"
+      device_type: compute
+      device_id: compute1
+      operation: set_power_policy_always_off
+      parameters:
+        timeout_seconds: 60
+      retry_count: 1
+      wait_after_seconds: 5
+
+  # Optional flow for switch recovery
+  switch_recovery_flow:
+    - name: "Configure SSH"
+      device_type: switch
+      device_id: switch1
+      operation: configure_ssh
+      parameters:
+        commands:  ["nv configure ssh"]
+        expected_versions: "1.0.5"
+      retry_count: 2
+      wait_after_seconds: 10
+      execute_optional_flow: "switch_recovery_secondary_flow"
+
+    - name: "Update switch"
+      device_type: switch
+      device_id: switch1
+      operation: update_system_image
+      parameters:
+        remote_url: "https://10.10.10.10/path/to/switch/firmware.bin"
+        reboot: "true"
+      retry_count: 1
+      wait_after_seconds: 5
+
+  switch_recovery_secondary_flow:
+    - name: "Reboot system"
+      device_type: switch
+      device_id: switch1
+      operation: reboot_system
+      retry_count: 2
+      wait_after_seconds: 10
+
+# Main flow steps
+steps:
+  # Step with BMC recovery flow as fallback
+  - name: "Check BMC Version"
+    device_type: compute
+    device_id: compute1
+    operation: check_bmc_version
+    parameters: {}
+    retry_count: 3
+    wait_after_seconds: 5
+    execute_optional_flow: "bmc_recovery_flow"  # Execute BMC recovery flow if this step fails
+
+  # Step with switch recovery flow as fallback
+  - name: "Check Switch Version"
+    device_type: switch
+    device_id: switch1
+    operation: check_firmware_versions
+    parameters: {}
+    retry_count: 2
+    wait_after_seconds: 5
+    execute_optional_flow: "switch_recovery_flow"  # Execute switch recovery flow if this step fails
+    execute_on_error: "custom_error_handler"
+
+  # Parallel steps with different recovery flows
+  - name: "Parallel Operations"
+    parallel:
+      - name: "Update BMC Firmware"
+        device_type: compute
+        device_id: compute1
+        operation: flash_pldm_bundle
+        parameters:
+          bundle_path: "/path/to/bmc/firmware.bin"
+        retry_count: 2
+        timeout_seconds: 600
+        wait_after_seconds: 30
+        execute_optional_flow: "bmc_recovery_flow"  # Execute BMC recovery flow if this step fails
+
+      - name: "Update Switch Firmware"
+        device_type: switch
+        device_id: switch1
+        operation: install_system_image
+        parameters:
+          image_path: "/path/to/switch/firmware.bin"
+        retry_count: 2
+        timeout_seconds: 900
+        wait_after_seconds: 30
+        execute_optional_flow: "switch_recovery_flow"  # Execute switch recovery flow if this step fails
+    max_workers: 2
+    wait_after_seconds: 10 

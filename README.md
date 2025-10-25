@@ -15,6 +15,7 @@ open-nvfwupd is a tool designed for updating firmware components using OOB metho
     - **Monitored Update** : Default behavior monitors a firmware update task to completion.
     - **Background Update** : Optional update task launch and manual monitoring.
     - **Parallel Update** : Launch updates on multiple systems at once using the yaml configuration file.
+    - **Factory Mode** : Launch step by step update flow for flashing firmware in factory.
 
 ## Prerequisites
 
@@ -133,6 +134,9 @@ Error Code: 0
 ```
 
 The update task is launched and monitored until full completion. After performing a firmware update of a component, or a full bundle, complete an AC power cycle to activate the new firmware. It can take up to five minutes for the BMC and the Redfish service to come up after the power cycle is complete. To check new system versions after the BMC Redfish service is back, run the show version command.
+
+## Factory Flow Feature
+v2.0.0 onwards open-nvfwupd also supports end to end factory update flows. Refer to FactoryMode/README.md for detailed instructions.
 
 ## Contributing to OPEN-NVFWUPD
 

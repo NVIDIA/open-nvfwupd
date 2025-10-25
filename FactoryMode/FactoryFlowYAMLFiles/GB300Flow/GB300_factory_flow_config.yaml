@@ -1,0 +1,127 @@
+# Factory Flow Configuration
+
+# Global Variables
+variables:
+  # Output mode for factory flow orchestrator
+  # Options:
+  #   "none"  - No console output, file logging only
+  #   "gui"   - Rich GUI with progress bars
+  #   "log"   - Stream log file to console
+  #   "json"  - Print JSON progress per stage
+  output_mode: "log"
+
+  # Top Level Folder path containing all FWPKG Compute/NVSwitch Bundles, Inband Images, and MFT
+  compute_bundles_folder: ""
+  nvswitch_bundles_folder: ""
+
+  # FWPKG Compute Bundle Names - Place in compute_bundles_folder
+  bmc_firmware_bundle_name: ""
+  bmc_cpld_firmware_bundle_name: ""
+  no_sbios_hmc_firmware_bundle_name: ""
+  cpu_sbios_bundle_name: ""
+
+  # Inband Image Names - Place in compute_bundles_folder
+  bluefield_3_inband_image_name: ""
+  connect_x8_inband_image_name: ""
+
+  # MFT Bundle Name - Place in compute_bundles_folder
+  mft_bundle_name: ""
+
+  # Switch Bundle Names - Place in nvswitch_bundles_folder (Not used if using GB300_remote_nvswitch_flow.yaml)
+  switch_bmc_bundle_name: ""
+  switch_cpld_file_name: ""
+  switch_bios_bundle_name: ""
+  switch_nvos_bundle_name: ""
+
+  # Switch Package Hosting Locations (Must be updated to scp://my_user:my_password@hostname/dir/file.bin format for GB300_nvswitch_flow.yaml)
+  switch_bmc_bundle_uri: "file://"
+  switch_cpld_file_uri: "file://"
+  switch_bios_bundle_uri: "file://"
+  switch_nvos_bundle_uri: "file://"
+
+  # NVDebug Tool for error log collection on failure
+  nvdebug_path: ""
+
+  # CAK Install/Lock Variables - Customer Defined if used
+  pem_encoded_key: ""
+  ap_firmware_signature: ""
+
+  # Versions used for version checking - If Not set, version check will be skipped
+  bmc_final_version: ""
+  bmc_erot_final_version: ""
+  bmc_backplane_cpld_final_version: ""
+  bmc_ipex_cpld_final_version: ""
+
+  hmc_final_version: ""
+  hmc_cpld_final_version: ""
+  hmc_fpga_final_version: ""
+  hmc_erot_final_version: ""
+  hmc_cpu_erot_final_version: ""
+  hmc_fpga_erot_final_version: ""
+  cpu_final_version: ""
+  hmc_gpu_final_version: ""
+
+  # Switch Versions
+  switch_bmc_final_version: ""
+  switch_fpga_final_version: ""
+  switch_erot_final_version: ""
+  switch_cpld1_final_version: ""
+  switch_bios_final_version: ""
+  switch_nvos_final_version: ""
+
+# Settings Configuration
+settings:
+  default_retry_count: 2
+  default_wait_after_seconds: 1
+  ssh_timeout: 30
+  redfish_timeout: 30
+  execute_on_error: "default_error_handler"
+
+# Connection Configuration
+connection:
+  compute:
+    bmc:
+      ip: ""
+      username: ""
+      password: ""
+      port: 443
+      protocol: "https"
+      # SCP target directory for BMC file transfers (defaults to /tmp if not set)
+      scp_target: ""
+    hmc:
+      ip: "172.31.13.251"
+    os:
+      ip: ""
+      username: ""
+      password: ""
+      port: 22
+      protocol: "ssh"
+      # SCP target directory (defaults to home directory if not set)
+      scp_target: ""
+  switch:
+    bmc:
+      ip: ""
+      username: ""
+      password: ""
+      port: 443
+      protocol: "https"
+      # SCP target directory for BMC file transfers (defaults to /tmp if not set)
+      scp_target: ""
+    os:
+      ip: ""
+      username: ""
+      password: ""
+      port: 22
+      protocol: "ssh"
+      # SCP target directory (defaults to home directory if not set)
+      scp_target: ""
+
+# Compute Configuration
+compute:
+  # Set to Volatile/Locking/NoDOT depending on DOT configuration
+  DOT: ""
+  # Enable POST logging during boot operations (default: false)
+  post_logging_enabled: true
+  # POST logging method: true for SSH SOL (ports 2200/2203), false for IPMI SOL (default: false)
+  # Only used if post_logging_enabled is true
+  use_ssh_sol: false

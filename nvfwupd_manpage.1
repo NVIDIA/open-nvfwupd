@@ -99,6 +99,18 @@ Task ID of the update task to monitor.
 .IP -j/--json
 show output in JSON
 .RE
+.TP
+.BR "factory_mode <command options>"
+Execute an automated factory flow using a config and flow YAML files.
+.IP "COMMAND OPTIONS"
+.RS
+.IP -f/--flow_path
+Path to the YAML factory flow file.
+.IP -c/--config_path
+Path to the YAML config file.
+.IP -l/--log_dir
+Optional path to the log directory. If not defined, defaults to current working directory.
+.RE
 .SH AUTHOR
 NVIDIA Corporation
 .SH COPYRIGHT
